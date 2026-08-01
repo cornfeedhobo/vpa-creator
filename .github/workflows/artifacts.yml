@@ -1,0 +1,60 @@
+name: Build Artifacts
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  controller-binary:
+    name: Controller Binary
+    runs-on: ubuntu-latest
+    steps:
+      - name: Clone the code
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+
+      - name: Build controller binary
+        run: |
+          mkdir -p dist/artifacts
+          CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o dist/artifacts/vpa-creator-linux-amd64 ./cmd/main.go
+          sha256sum dist/artifacts/vpa-creator-linux-amd64 > dist/artifacts/vpa-creator-linux-amd64.sha256
+
+      - name: Upload controller binary
+        uses: actions/upload-artifact@v4
+        with:
+          name: vpa-creator-controller-linux-amd64
+          path: |
+            dist/artifacts/vpa-creator-linux-amd64
+            dist/artifacts/vpa-creator-linux-amd64.sha256
+          if-no-files-found: error
+
+  container-image:
+    name: Container Image
+    runs-on: ubuntu-latest
+    steps:
+      - name: Clone the code
+        uses: actions/checkout@v4
+
+      - name: Build container image
+        run: |
+          mkdir -p dist/artifacts
+          docker build --tag vpa-creator:${GITHUB_SHA} .
+          docker save vpa-creator:${GITHUB_SHA} | gzip > dist/artifacts/vpa-creator-image-linux-amd64.tar.gz
+          sha256sum dist/artifacts/vpa-creator-image-linux-amd64.tar.gz > dist/artifacts/vpa-creator-image-linux-amd64.tar.gz.sha256
+
+      - name: Upload container image
+        uses: actions/upload-artifact@v4
+        with:
+          name: vpa-creator-image-linux-amd64
+          path: |
+            dist/artifacts/vpa-creator-image-linux-amd64.tar.gz
+            dist/artifacts/vpa-creator-image-linux-amd64.tar.gz.sha256
+          if-no-files-found: error

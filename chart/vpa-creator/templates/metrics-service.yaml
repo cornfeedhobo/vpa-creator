@@ -1,0 +1,17 @@
+{{- if .Values.metrics.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "vpa-creator.metricsServiceName" . }}
+  namespace: {{ include "vpa-creator.namespace" . }}
+  labels:
+    {{- include "vpa-creator.labels" . | nindent 4 }}
+spec:
+  ports:
+    - name: {{ ternary "https" "http" .Values.metrics.secure }}
+      port: {{ .Values.metrics.service.port }}
+      protocol: TCP
+      targetPort: {{ .Values.metrics.service.targetPort }}
+  selector:
+    {{- include "vpa-creator.selectorLabels" . | nindent 4 }}
+{{- end }}

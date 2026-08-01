@@ -13,6 +13,15 @@
   path: /spec/template/spec/containers/0/args/-
   value: --metrics-cert-path=/tmp/k8s-metrics-server/metrics-certs
 
+# Add the metrics certificate file names for the metrics server
+- op: add
+  path: /spec/template/spec/containers/0/args/-
+  value: --metrics-cert-name=tls.crt
+
+- op: add
+  path: /spec/template/spec/containers/0/args/-
+  value: --metrics-cert-key=tls.key
+
 # Add the metrics-server certs volume configuration
 - op: add
   path: /spec/template/spec/volumes/-

@@ -1,0 +1,9 @@
+apiVersion: v2
+name: vpa-creator
+description: A controller that creates Vertical Pod Autoscalers for Deployments and Jobs.
+type: application
+version: 0.1.0
+appVersion: "0.1.0"
+home: https://github.com/cloudoutloud/vpa-creator
+sources:
+  - https://github.com/cloudoutloud/vpa-creator

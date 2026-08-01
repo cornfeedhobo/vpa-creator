@@ -29,7 +29,7 @@ This in turn could reduce overall compute cost of a cluster.
 ## Getting Started
 
 ### Prerequisites
-- go version v1.24.0+
+- go version v1.26.4+
 - docker version 17.03+.
 - kubectl version v1.11.3+.
 - Access to a Kubernetes v1.11.3+ cluster.
@@ -98,21 +98,18 @@ kubectl apply -f https://raw.githubusercontent.com/<org>/vpa-creator/<tag or bra
 
 ### By providing a Helm Chart
 
-1. Build the chart using the optional helm plugin
+Install the chart with the image built and published in your registry:
 
 ```sh
-kubebuilder edit --plugins=helm/v1-alpha
+helm install vpa-creator ./charts/vpa-creator \
+  --set image.repository=<some-registry>/vpa-creator \
+  --set image.tag=<tag>
 ```
 
-2. See that a chart was generated under 'dist/chart', and users
-can obtain this solution from there.
-
-**NOTE:** If you change the project, you need to update the Helm Chart
-using the same command above to sync the latest changes. Furthermore,
-if you create webhooks, you need to use the above command with
-the '--force' flag and manually ensure that any custom configuration
-previously added to 'dist/chart/values.yaml' or 'dist/chart/manager/manager.yaml'
-is manually re-applied afterwards.
+The chart defaults to installing the controller resources into the
+`vpa-creator-system` namespace. Enable optional ServiceMonitor or metrics
+NetworkPolicy resources with chart values when those APIs are available in
+your cluster.
 
 ## Contributing
 
@@ -135,4 +132,3 @@ distributed under the License is distributed on an "AS IS" BASIS,
 WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
-

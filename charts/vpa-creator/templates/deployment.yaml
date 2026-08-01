@@ -1,0 +1,93 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "vpa-creator.managerName" . }}
+  namespace: {{ include "vpa-creator.namespace" . }}
+  labels:
+    {{- include "vpa-creator.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "vpa-creator.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      annotations:
+        {{- toYaml .Values.podAnnotations | nindent 8 }}
+      labels:
+        {{- include "vpa-creator.selectorLabels" . | nindent 8 }}
+        {{- with .Values.podLabels }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+    spec:
+      serviceAccountName: {{ include "vpa-creator.serviceAccountName" . }}
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      containers:
+        - name: manager
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          command:
+            - /manager
+          args:
+            {{- if .Values.metrics.enabled }}
+            - --metrics-bind-address={{ .Values.metrics.bindAddress }}
+            - --metrics-secure={{ .Values.metrics.secure }}
+            {{- if .Values.metrics.certificates.enabled }}
+            - --metrics-cert-path={{ .Values.metrics.certificates.mountPath }}
+            - --metrics-cert-name={{ .Values.metrics.certificates.certName }}
+            - --metrics-cert-key={{ .Values.metrics.certificates.certKey }}
+            {{- end }}
+            {{- end }}
+            {{- if .Values.leaderElection.enabled }}
+            - --leader-elect
+            {{- end }}
+            {{- if .Values.enableHTTP2 }}
+            - --enable-http2
+            {{- end }}
+            - --health-probe-bind-address={{ .Values.healthProbeBindAddress }}
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          livenessProbe:
+            {{- toYaml .Values.livenessProbe | nindent 12 }}
+          readinessProbe:
+            {{- toYaml .Values.readinessProbe | nindent 12 }}
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+          {{- if and .Values.metrics.enabled .Values.metrics.certificates.enabled }}
+          volumeMounts:
+            - mountPath: {{ .Values.metrics.certificates.mountPath }}
+              name: metrics-certs
+              readOnly: true
+          {{- end }}
+      {{- if and .Values.metrics.enabled .Values.metrics.certificates.enabled }}
+      volumes:
+        - name: metrics-certs
+          secret:
+            secretName: {{ .Values.metrics.certificates.secretName }}
+            optional: false
+            items:
+              - key: ca.crt
+                path: ca.crt
+              - key: {{ .Values.metrics.certificates.certName }}
+                path: {{ .Values.metrics.certificates.certName }}
+              - key: {{ .Values.metrics.certificates.certKey }}
+                path: {{ .Values.metrics.certificates.certKey }}
+      {{- end }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      terminationGracePeriodSeconds: {{ .Values.terminationGracePeriodSeconds }}

@@ -1,0 +1,4 @@
+vpa-creator has been installed into namespace {{ include "vpa-creator.namespace" . }}.
+
+The controller watches Deployments and Jobs and creates Vertical Pod Autoscalers.
+The cluster must already provide the autoscaling.k8s.io VerticalPodAutoscaler API.

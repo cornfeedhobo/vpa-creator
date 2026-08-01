@@ -1,0 +1,42 @@
+{{- if and .Values.metrics.enabled .Values.serviceMonitor.enabled }}
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: {{ include "vpa-creator.metricsServiceName" . }}-monitor
+  namespace: {{ include "vpa-creator.namespace" . }}
+  labels:
+    {{- include "vpa-creator.labels" . | nindent 4 }}
+    {{- with .Values.serviceMonitor.labels }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+spec:
+  endpoints:
+    - path: /metrics
+      port: {{ ternary "https" "http" .Values.metrics.secure }}
+      scheme: {{ ternary "https" "http" .Values.metrics.secure }}
+      {{- if .Values.metrics.secure }}
+      bearerTokenFile: /var/run/secrets/kubernetes.io/serviceaccount/token
+      {{- end }}
+      {{- with .Values.serviceMonitor.interval }}
+      interval: {{ . }}
+      {{- end }}
+      {{- with .Values.serviceMonitor.scrapeTimeout }}
+      scrapeTimeout: {{ . }}
+      {{- end }}
+      {{- if .Values.metrics.secure }}
+      tlsConfig:
+        {{- if .Values.serviceMonitor.certManager.enabled }}
+        serverName: {{ include "vpa-creator.metricsServiceName" . }}.{{ include "vpa-creator.namespace" . }}.svc
+        insecureSkipVerify: false
+        ca:
+          secret:
+            name: {{ .Values.metrics.certificates.secretName }}
+            key: ca.crt
+        {{- else }}
+        {{- toYaml .Values.serviceMonitor.tlsConfig | nindent 8 }}
+        {{- end }}
+      {{- end }}
+  selector:
+    matchLabels:
+      {{- include "vpa-creator.selectorLabels" . | nindent 6 }}
+{{- end }}

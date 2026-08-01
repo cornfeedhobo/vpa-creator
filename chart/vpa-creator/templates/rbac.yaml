@@ -1,0 +1,149 @@
+{{- if .Values.rbac.create }}
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: {{ include "vpa-creator.managerRoleName" . }}
+  labels:
+    {{- include "vpa-creator.labels" . | nindent 4 }}
+rules:
+  - apiGroups:
+      - apps
+      - batch
+      - autoscaling.k8s.io
+    resources:
+      - deployments
+      - jobs
+      - verticalpodautoscalers
+    verbs:
+      - get
+      - list
+      - watch
+      - create
+      - update
+      - patch
+      - delete
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: {{ include "vpa-creator.managerRoleName" . }}binding
+  labels:
+    {{- include "vpa-creator.labels" . | nindent 4 }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: {{ include "vpa-creator.managerRoleName" . }}
+subjects:
+  - kind: ServiceAccount
+    name: {{ include "vpa-creator.serviceAccountName" . }}
+    namespace: {{ include "vpa-creator.namespace" . }}
+{{- if .Values.leaderElection.enabled }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: {{ include "vpa-creator.leaderElectionRoleName" . }}
+  namespace: {{ include "vpa-creator.namespace" . }}
+  labels:
+    {{- include "vpa-creator.labels" . | nindent 4 }}
+rules:
+  - apiGroups:
+      - ""
+    resources:
+      - configmaps
+    verbs:
+      - get
+      - list
+      - watch
+      - create
+      - update
+      - patch
+      - delete
+  - apiGroups:
+      - coordination.k8s.io
+    resources:
+      - leases
+    verbs:
+      - get
+      - list
+      - watch
+      - create
+      - update
+      - patch
+      - delete
+  - apiGroups:
+      - ""
+    resources:
+      - events
+    verbs:
+      - create
+      - patch
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: {{ include "vpa-creator.leaderElectionRoleName" . }}binding
+  namespace: {{ include "vpa-creator.namespace" . }}
+  labels:
+    {{- include "vpa-creator.labels" . | nindent 4 }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: {{ include "vpa-creator.leaderElectionRoleName" . }}
+subjects:
+  - kind: ServiceAccount
+    name: {{ include "vpa-creator.serviceAccountName" . }}
+    namespace: {{ include "vpa-creator.namespace" . }}
+{{- end }}
+{{- if and .Values.metrics.enabled .Values.metrics.secure .Values.rbac.metricsAuth.create }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: {{ include "vpa-creator.metricsAuthRoleName" . }}
+  labels:
+    {{- include "vpa-creator.labels" . | nindent 4 }}
+rules:
+  - apiGroups:
+      - authentication.k8s.io
+    resources:
+      - tokenreviews
+    verbs:
+      - create
+  - apiGroups:
+      - authorization.k8s.io
+    resources:
+      - subjectaccessreviews
+    verbs:
+      - create
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: {{ include "vpa-creator.metricsAuthRoleName" . }}binding
+  labels:
+    {{- include "vpa-creator.labels" . | nindent 4 }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: {{ include "vpa-creator.metricsAuthRoleName" . }}
+subjects:
+  - kind: ServiceAccount
+    name: {{ include "vpa-creator.serviceAccountName" . }}
+    namespace: {{ include "vpa-creator.namespace" . }}
+{{- end }}
+{{- if and .Values.metrics.enabled .Values.rbac.metricsReader.create }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: {{ include "vpa-creator.metricsReaderRoleName" . }}
+  labels:
+    {{- include "vpa-creator.labels" . | nindent 4 }}
+rules:
+  - nonResourceURLs:
+      - /metrics
+    verbs:
+      - get
+{{- end }}
+{{- end }}

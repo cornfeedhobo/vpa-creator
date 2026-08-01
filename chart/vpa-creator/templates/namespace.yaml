@@ -1,0 +1,8 @@
+{{- if .Values.namespace.create }}
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: {{ include "vpa-creator.namespace" . }}
+  labels:
+    {{- include "vpa-creator.labels" . | nindent 4 }}
+{{- end }}

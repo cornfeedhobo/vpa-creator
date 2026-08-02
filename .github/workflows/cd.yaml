@@ -1,7 +1,11 @@
 name: Continuous Delivery
 
 on:
-  push:
+  workflow_run:
+    workflows:
+      - Continuous Integration
+    types:
+      - completed
     branches:
       - main
   workflow_dispatch:
@@ -19,6 +23,7 @@ permissions:
 jobs:
   preflight:
     name: Release Preflight
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
     outputs:
       app_version: ${{ steps.chart.outputs.app_version }}
@@ -31,6 +36,7 @@ jobs:
         uses: actions/checkout@v6
         with:
           fetch-depth: 0
+          ref: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || github.sha }}
 
       - name: Read chart metadata
         id: chart
@@ -142,6 +148,8 @@ jobs:
     steps:
       - name: Clone the code
         uses: actions/checkout@v6
+        with:
+          ref: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || github.sha }}
 
       - name: Check existing release during repair
         if: ${{ github.event_name == 'workflow_dispatch' && inputs.repair_existing }}
@@ -187,6 +195,8 @@ jobs:
     steps:
       - name: Clone the code
         uses: actions/checkout@v6
+        with:
+          ref: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || github.sha }}
 
       - name: Setup Docker Buildx
         uses: docker/setup-buildx-action@v4
@@ -239,6 +249,8 @@ jobs:
     steps:
       - name: Clone the code
         uses: actions/checkout@v6
+        with:
+          ref: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || github.sha }}
 
       - name: Bootstrap GitHub Pages branch
         run: |

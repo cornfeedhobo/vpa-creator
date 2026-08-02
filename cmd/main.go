@@ -133,7 +133,8 @@ func main() {
 	flag.StringVar(&daemonSetUpdateMode, "daemonset-update-mode", string(vpav1.UpdateModeOff),
 		"VPA update mode for DaemonSets. Valid values: "+validUpdateModes+".")
 	flag.StringVar(&vpaControlledValues, "vpa-controlled-values", string(vpav1.ContainerControlledValuesRequestsAndLimits),
-		"Values controlled by VPA when update mode applies resources. Valid values: RequestsAndLimits, RequestsOnly.")
+		"Values controlled by VPA when update mode applies resources. "+
+			"Valid values: RequestsAndLimits, RequestsOnly.")
 	opts := zap.Options{
 		Development: true,
 	}

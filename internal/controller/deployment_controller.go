@@ -10,7 +10,6 @@ import (
 	vpav1 "k8s.io/autoscaler/vertical-pod-autoscaler/pkg/apis/autoscaling.k8s.io/v1"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
@@ -34,31 +33,19 @@ func (r *DeploymentReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 	}
 
 	vpaName := fmt.Sprintf("%s-vpa", deploy.Name)
-
-	// Check if VPA already exists
-	var existingVPA vpav1.VerticalPodAutoscaler
-	err = r.Get(ctx, client.ObjectKey{Name: vpaName, Namespace: deploy.Namespace}, &existingVPA)
-	if err == nil {
-		// VPA exists
-		return ctrl.Result{}, nil
-	} else if !errors.IsNotFound(err) {
-		return ctrl.Result{}, err
-	}
-
 	vpa := NewVPA(vpaName, deploy.Namespace, "Deployment", deploy.Name, r.VPAConfig)
 
-	// Set the Deployment as the owner of the VPA for automatic garbage collection
-	if err := controllerutil.SetControllerReference(&deploy, vpa, r.Scheme); err != nil {
-		l.Error(err, "Failed to set controller reference")
+	created, updated, err := EnsureVPA(ctx, r.Client, r.Scheme, &deploy, vpa)
+	if err != nil {
+		l.Error(err, "Failed to ensure VPA")
 		return ctrl.Result{}, err
 	}
 
-	if err := r.Create(ctx, vpa); err != nil {
-		l.Error(err, "Failed to create VPA")
-		return ctrl.Result{}, err
+	if created {
+		l.Info("Created VPA", "VPA", vpaName)
+	} else if updated {
+		l.Info("Updated VPA", "VPA", vpaName)
 	}
-
-	l.Info("Created VPA", "VPA", vpaName)
 	return ctrl.Result{}, nil
 }
 

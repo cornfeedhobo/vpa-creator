@@ -3,6 +3,20 @@ entries:
   vpa-creator:
   - apiVersion: v2
     appVersion: 0.1.0
+    created: "2026-08-02T05:01:44.508983982Z"
+    description: A controller that creates Vertical Pod Autoscalers for Deployments,
+      StatefulSets, and DaemonSets.
+    digest: cf371105f741aa45ff643deee1374f31547f955f010712c304a06e9641b8a4ee
+    home: https://github.com/cloudoutloud/vpa-creator
+    name: vpa-creator
+    sources:
+    - https://github.com/cloudoutloud/vpa-creator
+    type: application
+    urls:
+    - vpa-creator-0.2.0.tgz
+    version: 0.2.0
+  - apiVersion: v2
+    appVersion: 0.1.0
     created: "2026-08-02T00:06:57.969797387Z"
     description: A controller that creates Vertical Pod Autoscalers for Deployments
       and Jobs.
@@ -15,4 +29,4 @@ entries:
     urls:
     - vpa-creator-0.1.0.tgz
     version: 0.1.0
-generated: "2026-08-02T00:06:57.969802226Z"
+generated: "2026-08-02T05:01:44.508996175Z"

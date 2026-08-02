@@ -11,16 +11,17 @@ Will watch for Deployments, StatefulSets, and DaemonSets and create a Vertical P
 VPA's are deployed as update mode off, to be used to gain insights on right sizing CPU/Mem requests for workloads.
 
 VPA update mode can be enabled per workload type with
-`--deployment-update-mode=Auto`, `--statefulset-update-mode=Auto`, or
-`--daemonset-update-mode=Auto`. By default, all three remain `Off`.
+`--deployment-update-mode`, `--statefulset-update-mode`, or
+`--daemonset-update-mode`. Supported values are `Off`, `Initial`, `Recreate`,
+`InPlaceOrRecreate`, and `InPlace`. By default, all three remain `Off`.
 
 VPA creation can also be disabled per workload type with
 `--enable-deployment-vpa=false`, `--enable-statefulset-vpa=false`, or
 `--enable-daemonset-vpa=false`.
 
-When auto mode is enabled, set `--vpa-controlled-values=RequestsOnly` to create
-VPAs that control requests without controlling limits. The default is
-`RequestsAndLimits`.
+When VPA is configured to apply resources, set
+`--vpa-controlled-values=RequestsOnly` to create VPAs that control requests
+without controlling limits. The default is `RequestsAndLimits`.
 
 When a resource is garbage collected, the controller automatically removes the associated VPA through Kubernetes' garbage collection mechanism.
 
@@ -117,7 +118,7 @@ helm install vpa-creator ./charts/vpa-creator \
   --set image.repository=<some-registry>/vpa-creator \
   --set image.tag=<tag> \
   --set vpa.enabled.statefulsets=false \
-  --set vpa.updateMode.deployments=Auto \
+  --set vpa.updateMode.deployments=Recreate \
   --set vpa.controlledValues=RequestsOnly
 ```
 

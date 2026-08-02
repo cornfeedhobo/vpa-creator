@@ -48,12 +48,22 @@ var (
 	setupLog = ctrl.Log.WithName("setup")
 )
 
+const (
+	validUpdateModes = "Off, Initial, Recreate, InPlaceOrRecreate, InPlace"
+)
+
 func parseUpdateMode(value string) (vpav1.UpdateMode, bool) {
-	switch vpav1.UpdateMode(value) {
-	case vpav1.UpdateModeOff:
+	switch value {
+	case string(vpav1.UpdateModeOff):
 		return vpav1.UpdateModeOff, true
-	case vpav1.UpdateModeAuto:
-		return vpav1.UpdateModeAuto, true
+	case string(vpav1.UpdateModeInitial):
+		return vpav1.UpdateModeInitial, true
+	case string(vpav1.UpdateModeRecreate):
+		return vpav1.UpdateModeRecreate, true
+	case string(vpav1.UpdateModeInPlaceOrRecreate):
+		return vpav1.UpdateModeInPlaceOrRecreate, true
+	case string(vpav1.UpdateModeInPlace):
+		return vpav1.UpdateModeInPlace, true
 	default:
 		return "", false
 	}
@@ -117,13 +127,13 @@ func main() {
 	flag.BoolVar(&enableDaemonSetVPA, "enable-daemonset-vpa", true,
 		"If set, create VPAs for DaemonSets.")
 	flag.StringVar(&deploymentUpdateMode, "deployment-update-mode", string(vpav1.UpdateModeOff),
-		"VPA update mode for Deployments. Valid values: Off, Auto.")
+		"VPA update mode for Deployments. Valid values: "+validUpdateModes+".")
 	flag.StringVar(&statefulSetUpdateMode, "statefulset-update-mode", string(vpav1.UpdateModeOff),
-		"VPA update mode for StatefulSets. Valid values: Off, Auto.")
+		"VPA update mode for StatefulSets. Valid values: "+validUpdateModes+".")
 	flag.StringVar(&daemonSetUpdateMode, "daemonset-update-mode", string(vpav1.UpdateModeOff),
-		"VPA update mode for DaemonSets. Valid values: Off, Auto.")
+		"VPA update mode for DaemonSets. Valid values: "+validUpdateModes+".")
 	flag.StringVar(&vpaControlledValues, "vpa-controlled-values", string(vpav1.ContainerControlledValuesRequestsAndLimits),
-		"Values controlled by VPA when update mode is Auto. Valid values: RequestsAndLimits, RequestsOnly.")
+		"Values controlled by VPA when update mode applies resources. Valid values: RequestsAndLimits, RequestsOnly.")
 	opts := zap.Options{
 		Development: true,
 	}
@@ -134,22 +144,30 @@ func main() {
 
 	deploymentMode, ok := parseUpdateMode(deploymentUpdateMode)
 	if !ok {
-		setupLog.Error(nil, "invalid deployment update mode", "value", deploymentUpdateMode, "validValues", "Off, Auto")
+		setupLog.Error(nil, "invalid deployment update mode",
+			"value", deploymentUpdateMode,
+			"validValues", validUpdateModes)
 		os.Exit(1)
 	}
 	statefulSetMode, ok := parseUpdateMode(statefulSetUpdateMode)
 	if !ok {
-		setupLog.Error(nil, "invalid statefulset update mode", "value", statefulSetUpdateMode, "validValues", "Off, Auto")
+		setupLog.Error(nil, "invalid statefulset update mode",
+			"value", statefulSetUpdateMode,
+			"validValues", validUpdateModes)
 		os.Exit(1)
 	}
 	daemonSetMode, ok := parseUpdateMode(daemonSetUpdateMode)
 	if !ok {
-		setupLog.Error(nil, "invalid daemonset update mode", "value", daemonSetUpdateMode, "validValues", "Off, Auto")
+		setupLog.Error(nil, "invalid daemonset update mode",
+			"value", daemonSetUpdateMode,
+			"validValues", validUpdateModes)
 		os.Exit(1)
 	}
 	controlledValues, ok := parseControlledValues(vpaControlledValues)
 	if !ok {
-		setupLog.Error(nil, "invalid VPA controlled values", "value", vpaControlledValues, "validValues", "RequestsAndLimits, RequestsOnly")
+		setupLog.Error(nil, "invalid VPA controlled values",
+			"value", vpaControlledValues,
+			"validValues", "RequestsAndLimits, RequestsOnly")
 		os.Exit(1)
 	}
 

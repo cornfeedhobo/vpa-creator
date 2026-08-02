@@ -20,17 +20,17 @@ func TestNewVPADefaultsToOffWithoutResourcePolicy(t *testing.T) {
 	}
 }
 
-func TestNewVPAAutoRequestsOnlySetsWildcardContainerPolicy(t *testing.T) {
+func TestNewVPARequestsOnlySetsWildcardContainerPolicyForApplyingModes(t *testing.T) {
 	vpa := NewVPA("app-vpa", "default", "Deployment", "app", VPAConfig{
-		UpdateMode:       vpav1.UpdateModeAuto,
+		UpdateMode:       vpav1.UpdateModeRecreate,
 		ControlledValues: vpav1.ContainerControlledValuesRequestsOnly,
 	})
 
 	if vpa.Spec.UpdatePolicy == nil || vpa.Spec.UpdatePolicy.UpdateMode == nil {
 		t.Fatal("expected update policy mode to be set")
 	}
-	if *vpa.Spec.UpdatePolicy.UpdateMode != vpav1.UpdateModeAuto {
-		t.Fatalf("expected update mode %q, got %q", vpav1.UpdateModeAuto, *vpa.Spec.UpdatePolicy.UpdateMode)
+	if *vpa.Spec.UpdatePolicy.UpdateMode != vpav1.UpdateModeRecreate {
+		t.Fatalf("expected update mode %q, got %q", vpav1.UpdateModeRecreate, *vpa.Spec.UpdatePolicy.UpdateMode)
 	}
 	if vpa.Spec.ResourcePolicy == nil {
 		t.Fatal("expected resource policy to be set")
@@ -47,6 +47,8 @@ func TestNewVPAAutoRequestsOnlySetsWildcardContainerPolicy(t *testing.T) {
 		t.Fatal("expected controlled values to be set")
 	}
 	if *policy.ControlledValues != vpav1.ContainerControlledValuesRequestsOnly {
-		t.Fatalf("expected controlled values %q, got %q", vpav1.ContainerControlledValuesRequestsOnly, *policy.ControlledValues)
+		t.Fatalf("expected controlled values %q, got %q",
+			vpav1.ContainerControlledValuesRequestsOnly,
+			*policy.ControlledValues)
 	}
 }

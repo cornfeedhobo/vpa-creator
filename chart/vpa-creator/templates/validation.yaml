@@ -10,15 +10,15 @@
 {{- if not (kindIs "bool" .Values.vpa.enabled.daemonsets) }}
 {{- fail "vpa.enabled.daemonsets must be a boolean" }}
 {{- end }}
-{{- $validUpdateModes := list "Off" "Auto" }}
+{{- $validUpdateModes := list "Off" "Initial" "Recreate" "InPlaceOrRecreate" "InPlace" }}
 {{- if not (has .Values.vpa.updateMode.deployments $validUpdateModes) }}
-{{- fail "vpa.updateMode.deployments must be one of: Off, Auto" }}
+{{- fail "vpa.updateMode.deployments must be one of: Off, Initial, Recreate, InPlaceOrRecreate, InPlace" }}
 {{- end }}
 {{- if not (has .Values.vpa.updateMode.statefulsets $validUpdateModes) }}
-{{- fail "vpa.updateMode.statefulsets must be one of: Off, Auto" }}
+{{- fail "vpa.updateMode.statefulsets must be one of: Off, Initial, Recreate, InPlaceOrRecreate, InPlace" }}
 {{- end }}
 {{- if not (has .Values.vpa.updateMode.daemonsets $validUpdateModes) }}
-{{- fail "vpa.updateMode.daemonsets must be one of: Off, Auto" }}
+{{- fail "vpa.updateMode.daemonsets must be one of: Off, Initial, Recreate, InPlaceOrRecreate, InPlace" }}
 {{- end }}
 {{- $validControlledValues := list "RequestsAndLimits" "RequestsOnly" }}
 {{- if not (has .Values.vpa.controlledValues $validControlledValues) }}

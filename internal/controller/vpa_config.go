@@ -33,7 +33,7 @@ func NewVPA(name, namespace, targetKind, targetName string, config VPAConfig) *v
 		},
 	}
 
-	if config.UpdateMode == vpav1.UpdateModeAuto &&
+	if config.UpdateMode != vpav1.UpdateModeOff &&
 		config.ControlledValues == vpav1.ContainerControlledValuesRequestsOnly {
 		controlledValues := vpav1.ContainerControlledValuesRequestsOnly
 		vpa.Spec.ResourcePolicy = &vpav1.PodResourcePolicy{

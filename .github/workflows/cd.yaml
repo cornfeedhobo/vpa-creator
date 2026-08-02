@@ -1,0 +1,295 @@
+name: Continuous Delivery
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+    inputs:
+      repair_existing:
+        description: Repair a partially published release by skipping artifacts that already exist
+        required: false
+        default: false
+        type: boolean
+
+permissions:
+  contents: write
+  packages: write
+
+jobs:
+  preflight:
+    name: Release Preflight
+    runs-on: ubuntu-latest
+    outputs:
+      app_version: ${{ steps.chart.outputs.app_version }}
+      chart_name: ${{ steps.chart.outputs.chart_name }}
+      chart_package: ${{ steps.chart.outputs.chart_package }}
+      chart_version: ${{ steps.chart.outputs.chart_version }}
+      image: ${{ steps.chart.outputs.image }}
+    steps:
+      - name: Clone the code
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Read chart metadata
+        id: chart
+        run: |
+          chart_name="$(awk -F': *' '$1 == "name" { gsub(/^["'\'' ]+|["'\'' ]+$/, "", $2); print $2; exit }' chart/vpa-creator/Chart.yaml)"
+          chart_version="$(awk -F': *' '$1 == "version" { gsub(/^["'\'' ]+|["'\'' ]+$/, "", $2); print $2; exit }' chart/vpa-creator/Chart.yaml)"
+          app_version="$(awk -F': *' '$1 == "appVersion" { gsub(/^["'\'' ]+|["'\'' ]+$/, "", $2); print $2; exit }' chart/vpa-creator/Chart.yaml)"
+
+          if [[ -z "$chart_name" ]]; then
+            echo "::error file=chart/vpa-creator/Chart.yaml::name is required"
+            exit 1
+          fi
+
+          if [[ -z "$chart_version" ]]; then
+            echo "::error file=chart/vpa-creator/Chart.yaml::version is required"
+            exit 1
+          fi
+
+          if [[ -z "$app_version" ]]; then
+            echo "::error file=chart/vpa-creator/Chart.yaml::appVersion is required"
+            exit 1
+          fi
+
+          if [[ ! "$app_version" =~ ^[0-9]+[.][0-9]+[.][0-9]+([-._][0-9A-Za-z.-]+)?$ ]]; then
+            echo "::error file=chart/vpa-creator/Chart.yaml::appVersion must be tag-safe, for example 1.2.3 or 1.2.3-rc.1"
+            exit 1
+          fi
+
+          chart_package="${chart_name}-${chart_version}.tgz"
+          image="ghcr.io/${{ github.repository_owner }}/vpa-creator:${app_version}"
+
+          echo "app_version=$app_version" >> "$GITHUB_OUTPUT"
+          echo "chart_name=$chart_name" >> "$GITHUB_OUTPUT"
+          echo "chart_package=$chart_package" >> "$GITHUB_OUTPUT"
+          echo "chart_version=$chart_version" >> "$GITHUB_OUTPUT"
+          echo "image=$image" >> "$GITHUB_OUTPUT"
+
+      - name: Setup Docker Buildx
+        uses: docker/setup-buildx-action@v4
+
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Configure Git
+        run: |
+          git config user.name "$GITHUB_ACTOR"
+          git config user.email "$GITHUB_ACTOR@users.noreply.github.com"
+
+      - name: Bootstrap GitHub Pages branch
+        run: |
+          if ! git ls-remote --exit-code --heads origin gh-pages >/dev/null 2>&1; then
+            current_branch="$(git branch --show-current)"
+            git switch --orphan gh-pages
+            git rm -rf --ignore-unmatch .
+            cat > README.md <<'EOF'
+          # vpa-creator Helm charts
+
+          This branch is managed by GitHub Actions.
+          EOF
+            git add README.md
+            git commit -m "Initialize GitHub Pages branch"
+            git push origin gh-pages
+            git switch "$current_branch"
+          fi
+
+          git fetch origin gh-pages:refs/remotes/origin/gh-pages
+
+      - name: Refuse existing release artifacts
+        if: ${{ github.event_name != 'workflow_dispatch' || !inputs.repair_existing }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          app_version="${{ steps.chart.outputs.app_version }}"
+          chart_package="${{ steps.chart.outputs.chart_package }}"
+          image="${{ steps.chart.outputs.image }}"
+
+          if git ls-remote --exit-code --tags origin "$app_version" >/dev/null 2>&1; then
+            echo "::error::Release tag already exists: $app_version"
+            echo "Bump chart/vpa-creator/Chart.yaml appVersion before publishing a new immutable release."
+            exit 1
+          fi
+
+          if gh release view "$app_version" >/dev/null 2>&1; then
+            echo "::error::Release already exists: $app_version"
+            echo "Bump chart/vpa-creator/Chart.yaml appVersion before publishing a new immutable release."
+            exit 1
+          fi
+
+          if docker buildx imagetools inspect "$image" >/dev/null 2>&1; then
+            echo "::error::Container image tag already exists: $image"
+            echo "Bump chart/vpa-creator/Chart.yaml appVersion before publishing a new immutable image."
+            exit 1
+          fi
+
+          if git ls-tree -r --name-only origin/gh-pages -- "$chart_package" | grep -qx "$chart_package"; then
+            echo "::error::Helm chart version already published: $chart_package"
+            echo "Bump chart/vpa-creator/Chart.yaml version before publishing a new chart."
+            exit 1
+          fi
+
+  controller-binary:
+    name: Controller Binary
+    needs: preflight
+    runs-on: ubuntu-latest
+    steps:
+      - name: Clone the code
+        uses: actions/checkout@v6
+
+      - name: Check existing release during repair
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.repair_existing }}
+        id: repair
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          if gh release view "${{ needs.preflight.outputs.app_version }}" >/dev/null 2>&1; then
+            echo "Release already exists; skipping binary publish."
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Setup Go
+        if: ${{ steps.repair.outputs.skip != 'true' }}
+        uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+
+      - name: Build controller binary
+        if: ${{ steps.repair.outputs.skip != 'true' }}
+        run: |
+          mkdir -p dist/artifacts
+          CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o dist/artifacts/vpa-creator-linux-amd64 ./cmd/main.go
+          sha256sum dist/artifacts/vpa-creator-linux-amd64 > dist/artifacts/vpa-creator-linux-amd64.sha256
+
+      - name: Release controller binary
+        if: ${{ steps.repair.outputs.skip != 'true' }}
+        uses: softprops/action-gh-release@v3
+        with:
+          fail_on_unmatched_files: true
+          files: |
+            dist/artifacts/vpa-creator-linux-amd64
+            dist/artifacts/vpa-creator-linux-amd64.sha256
+          name: ${{ needs.preflight.outputs.app_version }}
+          tag_name: ${{ needs.preflight.outputs.app_version }}
+
+  controller-image:
+    name: Controller Image
+    needs: preflight
+    runs-on: ubuntu-latest
+    steps:
+      - name: Clone the code
+        uses: actions/checkout@v6
+
+      - name: Setup Docker Buildx
+        uses: docker/setup-buildx-action@v4
+
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Check existing image during repair
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.repair_existing }}
+        id: repair
+        run: |
+          if docker buildx imagetools inspect "${{ needs.preflight.outputs.image }}" >/dev/null 2>&1; then
+            echo "Image already exists; skipping image publish."
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Docker metadata mapping
+        if: ${{ steps.repair.outputs.skip != 'true' }}
+        id: meta
+        uses: docker/metadata-action@v6
+        with:
+          images: |
+            ghcr.io/${{ github.repository_owner }}/vpa-creator
+          tags: |
+            type=raw,value=latest
+            type=raw,value=${{ needs.preflight.outputs.app_version }}
+            type=sha,prefix=sha-
+
+      - name: Build and push container image
+        if: ${{ steps.repair.outputs.skip != 'true' }}
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  controller-chart:
+    name: Controller Chart
+    needs: preflight
+    runs-on: ubuntu-latest
+    steps:
+      - name: Clone the code
+        uses: actions/checkout@v6
+
+      - name: Bootstrap GitHub Pages branch
+        run: |
+          git fetch origin gh-pages:refs/remotes/origin/gh-pages
+
+      - name: Configure Git
+        run: |
+          git config user.name "$GITHUB_ACTOR"
+          git config user.email "$GITHUB_ACTOR@users.noreply.github.com"
+
+      - name: Check existing chart during repair
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.repair_existing }}
+        id: repair
+        run: |
+          chart_package="${{ needs.preflight.outputs.chart_package }}"
+
+          if git ls-tree -r --name-only origin/gh-pages -- "$chart_package" | grep -qx "$chart_package"; then
+            echo "Chart already exists; skipping chart publish."
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Setup Helm
+        if: ${{ steps.repair.outputs.skip != 'true' }}
+        uses: azure/setup-helm@v5.0.1
+
+      - name: Package Helm Chart
+        if: ${{ steps.repair.outputs.skip != 'true' }}
+        run: |
+          mkdir -p dist/charts
+          helm package chart/vpa-creator --destination dist/charts
+
+      - name: Publish Helm Chart Repo
+        if: ${{ steps.repair.outputs.skip != 'true' }}
+        run: |
+          repo_url="https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}"
+          git worktree add gh-pages origin/gh-pages
+
+          cp dist/charts/*.tgz gh-pages/
+          if [[ -f gh-pages/index.yaml ]]; then
+            helm repo index gh-pages --url "$repo_url" --merge gh-pages/index.yaml
+          else
+            helm repo index gh-pages --url "$repo_url"
+          fi
+
+          git -C gh-pages add .
+          if git -C gh-pages diff --cached --quiet; then
+            echo "No Helm chart repository changes to publish."
+            exit 0
+          fi
+
+          git -C gh-pages commit -m "Publish Helm chart v${{ needs.preflight.outputs.chart_version }}"
+          git -C gh-pages push origin HEAD:gh-pages

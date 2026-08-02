@@ -8,7 +8,7 @@ namespace:
 replicaCount: 1
 
 image:
-  repository: ""
+  repository: "ghcr.io/cornfeedhobo/vpa-creator"
   tag: ""
   pullPolicy: IfNotPresent
 

@@ -6,24 +6,18 @@ Upstream source:
 
 - https://github.com/cloudoutloud/vpa-creator
 
-This chart is sourced from the upstream repository's `charts/vpa-creator`
-directory. The upstream project does not publish controller images, and this
-chart repository does not publish replacement images. Build the image from the
-upstream source and install the chart with the image location you pushed:
+This chart installs the controller image published from this repository. The
+default image tag follows the chart `appVersion`.
 
 ```sh
-make docker-build docker-push IMG=<some-registry>/vpa-creator:<tag>
-
 helm install vpa-creator ./charts/vpa-creator \
-  --set image.repository=<some-registry>/vpa-creator \
-  --set image.tag=<tag> \
   --set vpa.enabled.statefulsets=false \
   --set vpa.updateMode.deployments=Recreate \
   --set vpa.controlledValues=RequestsOnly
 ```
 
-`image.repository` is intentionally empty by default. Helm rendering fails until
-it is set, because there is no known upstream image repository to pull from.
+Set `image.repository` and `image.tag` only when installing a custom controller
+image.
 
 The chart defaults all created VPAs to update mode `Off`. Set
 `vpa.updateMode.deployments`, `vpa.updateMode.statefulsets`, or

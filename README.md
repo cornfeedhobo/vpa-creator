@@ -111,12 +111,10 @@ kubectl apply -f https://raw.githubusercontent.com/<org>/vpa-creator/<tag or bra
 
 ### By providing a Helm Chart
 
-Install the chart with the image built and published in your registry:
+Install the chart with the default controller image:
 
 ```sh
 helm install vpa-creator ./charts/vpa-creator \
-  --set image.repository=<some-registry>/vpa-creator \
-  --set image.tag=<tag> \
   --set vpa.enabled.statefulsets=false \
   --set vpa.updateMode.deployments=Recreate \
   --set vpa.controlledValues=RequestsOnly

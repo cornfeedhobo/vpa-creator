@@ -8,11 +8,11 @@ metadata:
 rules:
 - apiGroups:
   - apps
-  - batch
   - autoscaling.k8s.io
   resources:
   - deployments
-  - jobs
+  - statefulsets
+  - daemonsets
   - verticalpodautoscalers
   verbs:
   - get

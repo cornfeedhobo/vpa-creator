@@ -31,6 +31,17 @@ leaderElection:
 
 healthProbeBindAddress: ":8081"
 
+vpa:
+  enabled:
+    deployments: true
+    statefulsets: true
+    daemonsets: true
+  updateMode:
+    deployments: "Off"
+    statefulsets: "Off"
+    daemonsets: "Off"
+  controlledValues: "RequestsAndLimits"
+
 metrics:
   enabled: true
   secure: true

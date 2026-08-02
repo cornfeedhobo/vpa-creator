@@ -63,6 +63,13 @@ spec:
         args:
         - --leader-elect
         - --health-probe-bind-address=:8081
+        - --enable-deployment-vpa=true
+        - --enable-statefulset-vpa=true
+        - --enable-daemonset-vpa=true
+        - --deployment-update-mode=Off
+        - --statefulset-update-mode=Off
+        - --daemonset-update-mode=Off
+        - --vpa-controlled-values=RequestsAndLimits
         image: controller:latest
         # If running in kind and image is loaded locally, avoid pulling the image.
         imagePullPolicy: IfNotPresent

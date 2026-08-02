@@ -8,11 +8,17 @@ metadata:
 rules:
   - apiGroups:
       - apps
-      - batch
       - autoscaling.k8s.io
     resources:
+      {{- if .Values.vpa.enabled.deployments }}
       - deployments
-      - jobs
+      {{- end }}
+      {{- if .Values.vpa.enabled.statefulsets }}
+      - statefulsets
+      {{- end }}
+      {{- if .Values.vpa.enabled.daemonsets }}
+      - daemonsets
+      {{- end }}
       - verticalpodautoscalers
     verbs:
       - get

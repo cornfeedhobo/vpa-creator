@@ -48,6 +48,28 @@ var (
 	setupLog = ctrl.Log.WithName("setup")
 )
 
+func parseUpdateMode(value string) (vpav1.UpdateMode, bool) {
+	switch vpav1.UpdateMode(value) {
+	case vpav1.UpdateModeOff:
+		return vpav1.UpdateModeOff, true
+	case vpav1.UpdateModeAuto:
+		return vpav1.UpdateModeAuto, true
+	default:
+		return "", false
+	}
+}
+
+func parseControlledValues(value string) (vpav1.ContainerControlledValues, bool) {
+	switch vpav1.ContainerControlledValues(value) {
+	case vpav1.ContainerControlledValuesRequestsAndLimits:
+		return vpav1.ContainerControlledValuesRequestsAndLimits, true
+	case vpav1.ContainerControlledValuesRequestsOnly:
+		return vpav1.ContainerControlledValuesRequestsOnly, true
+	default:
+		return "", false
+	}
+}
+
 func init() {
 	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
 
@@ -68,6 +90,9 @@ func main() {
 	var secureMetrics bool
 	var enableHTTP2 bool
 	var tlsOpts []func(*tls.Config)
+	var enableDeploymentVPA, enableStatefulSetVPA, enableDaemonSetVPA bool
+	var deploymentUpdateMode, statefulSetUpdateMode, daemonSetUpdateMode string
+	var vpaControlledValues string
 	flag.StringVar(&metricsAddr, "metrics-bind-address", "0", "The address the metrics endpoint binds to. "+
 		"Use :8443 for HTTPS or :8080 for HTTP, or leave as 0 to disable the metrics service.")
 	flag.StringVar(&probeAddr, "health-probe-bind-address", ":8081", "The address the probe endpoint binds to.")
@@ -85,6 +110,20 @@ func main() {
 	flag.StringVar(&metricsCertKey, "metrics-cert-key", "tls.key", "The name of the metrics server key file.")
 	flag.BoolVar(&enableHTTP2, "enable-http2", false,
 		"If set, HTTP/2 will be enabled for the metrics and webhook servers")
+	flag.BoolVar(&enableDeploymentVPA, "enable-deployment-vpa", true,
+		"If set, create VPAs for Deployments.")
+	flag.BoolVar(&enableStatefulSetVPA, "enable-statefulset-vpa", true,
+		"If set, create VPAs for StatefulSets.")
+	flag.BoolVar(&enableDaemonSetVPA, "enable-daemonset-vpa", true,
+		"If set, create VPAs for DaemonSets.")
+	flag.StringVar(&deploymentUpdateMode, "deployment-update-mode", string(vpav1.UpdateModeOff),
+		"VPA update mode for Deployments. Valid values: Off, Auto.")
+	flag.StringVar(&statefulSetUpdateMode, "statefulset-update-mode", string(vpav1.UpdateModeOff),
+		"VPA update mode for StatefulSets. Valid values: Off, Auto.")
+	flag.StringVar(&daemonSetUpdateMode, "daemonset-update-mode", string(vpav1.UpdateModeOff),
+		"VPA update mode for DaemonSets. Valid values: Off, Auto.")
+	flag.StringVar(&vpaControlledValues, "vpa-controlled-values", string(vpav1.ContainerControlledValuesRequestsAndLimits),
+		"Values controlled by VPA when update mode is Auto. Valid values: RequestsAndLimits, RequestsOnly.")
 	opts := zap.Options{
 		Development: true,
 	}
@@ -92,6 +131,27 @@ func main() {
 	flag.Parse()
 
 	ctrl.SetLogger(zap.New(zap.UseFlagOptions(&opts)))
+
+	deploymentMode, ok := parseUpdateMode(deploymentUpdateMode)
+	if !ok {
+		setupLog.Error(nil, "invalid deployment update mode", "value", deploymentUpdateMode, "validValues", "Off, Auto")
+		os.Exit(1)
+	}
+	statefulSetMode, ok := parseUpdateMode(statefulSetUpdateMode)
+	if !ok {
+		setupLog.Error(nil, "invalid statefulset update mode", "value", statefulSetUpdateMode, "validValues", "Off, Auto")
+		os.Exit(1)
+	}
+	daemonSetMode, ok := parseUpdateMode(daemonSetUpdateMode)
+	if !ok {
+		setupLog.Error(nil, "invalid daemonset update mode", "value", daemonSetUpdateMode, "validValues", "Off, Auto")
+		os.Exit(1)
+	}
+	controlledValues, ok := parseControlledValues(vpaControlledValues)
+	if !ok {
+		setupLog.Error(nil, "invalid VPA controlled values", "value", vpaControlledValues, "validValues", "RequestsAndLimits, RequestsOnly")
+		os.Exit(1)
+	}
 
 	// if the enable-http2 flag is false (the default), http/2 should be disabled
 	// due to its vulnerabilities. More specifically, disabling http/2 will
@@ -206,20 +266,46 @@ func main() {
 		os.Exit(1)
 	}
 
-	if err := (&controller.DeploymentReconciler{
-		Client: mgr.GetClient(),
-		Scheme: mgr.GetScheme(),
-	}).SetupWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "DeploymentReconciler")
-		os.Exit(1)
+	if enableDeploymentVPA {
+		if err := (&controller.DeploymentReconciler{
+			Client: mgr.GetClient(),
+			Scheme: mgr.GetScheme(),
+			VPAConfig: controller.VPAConfig{
+				UpdateMode:       deploymentMode,
+				ControlledValues: controlledValues,
+			},
+		}).SetupWithManager(mgr); err != nil {
+			setupLog.Error(err, "unable to create controller", "controller", "DeploymentReconciler")
+			os.Exit(1)
+		}
 	}
 
-	if err := (&controller.JobReconciler{
-		Client: mgr.GetClient(),
-		Scheme: mgr.GetScheme(),
-	}).SetupWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "JoReconciler")
-		os.Exit(1)
+	if enableStatefulSetVPA {
+		if err := (&controller.StatefulSetReconciler{
+			Client: mgr.GetClient(),
+			Scheme: mgr.GetScheme(),
+			VPAConfig: controller.VPAConfig{
+				UpdateMode:       statefulSetMode,
+				ControlledValues: controlledValues,
+			},
+		}).SetupWithManager(mgr); err != nil {
+			setupLog.Error(err, "unable to create controller", "controller", "StatefulSetReconciler")
+			os.Exit(1)
+		}
+	}
+
+	if enableDaemonSetVPA {
+		if err := (&controller.DaemonSetReconciler{
+			Client: mgr.GetClient(),
+			Scheme: mgr.GetScheme(),
+			VPAConfig: controller.VPAConfig{
+				UpdateMode:       daemonSetMode,
+				ControlledValues: controlledValues,
+			},
+		}).SetupWithManager(mgr); err != nil {
+			setupLog.Error(err, "unable to create controller", "controller", "DaemonSetReconciler")
+			os.Exit(1)
+		}
 	}
 
 	// +kubebuilder:scaffold:builder

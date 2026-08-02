@@ -16,8 +16,21 @@ make docker-build docker-push IMG=<some-registry>/vpa-creator:<tag>
 
 helm install vpa-creator ./charts/vpa-creator \
   --set image.repository=<some-registry>/vpa-creator \
-  --set image.tag=<tag>
+  --set image.tag=<tag> \
+  --set vpa.enabled.statefulsets=false \
+  --set vpa.updateMode.deployments=Auto \
+  --set vpa.controlledValues=RequestsOnly
 ```
 
 `image.repository` is intentionally empty by default. Helm rendering fails until
 it is set, because there is no known upstream image repository to pull from.
+
+The chart defaults all created VPAs to update mode `Off`. Set
+`vpa.updateMode.deployments`, `vpa.updateMode.statefulsets`, or
+`vpa.updateMode.daemonsets` to `Auto` per workload type. Set
+`vpa.controlledValues=RequestsOnly` to have auto-mode VPAs control requests
+without controlling limits.
+
+Set `vpa.enabled.deployments`, `vpa.enabled.statefulsets`, or
+`vpa.enabled.daemonsets` to `false` to disable VPA creation and watches for that
+workload type.

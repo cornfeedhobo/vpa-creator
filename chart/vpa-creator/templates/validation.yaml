@@ -1,3 +1,26 @@
 {{- if and .Values.serviceMonitor.enabled .Values.serviceMonitor.certManager.enabled (not .Values.metrics.certificates.enabled) }}
 {{- fail "serviceMonitor.certManager.enabled requires metrics.certificates.enabled so the manager serves the same certificate that ServiceMonitor verifies" }}
 {{- end }}
+{{- if not (kindIs "bool" .Values.vpa.enabled.deployments) }}
+{{- fail "vpa.enabled.deployments must be a boolean" }}
+{{- end }}
+{{- if not (kindIs "bool" .Values.vpa.enabled.statefulsets) }}
+{{- fail "vpa.enabled.statefulsets must be a boolean" }}
+{{- end }}
+{{- if not (kindIs "bool" .Values.vpa.enabled.daemonsets) }}
+{{- fail "vpa.enabled.daemonsets must be a boolean" }}
+{{- end }}
+{{- $validUpdateModes := list "Off" "Auto" }}
+{{- if not (has .Values.vpa.updateMode.deployments $validUpdateModes) }}
+{{- fail "vpa.updateMode.deployments must be one of: Off, Auto" }}
+{{- end }}
+{{- if not (has .Values.vpa.updateMode.statefulsets $validUpdateModes) }}
+{{- fail "vpa.updateMode.statefulsets must be one of: Off, Auto" }}
+{{- end }}
+{{- if not (has .Values.vpa.updateMode.daemonsets $validUpdateModes) }}
+{{- fail "vpa.updateMode.daemonsets must be one of: Off, Auto" }}
+{{- end }}
+{{- $validControlledValues := list "RequestsAndLimits" "RequestsOnly" }}
+{{- if not (has .Values.vpa.controlledValues $validControlledValues) }}
+{{- fail "vpa.controlledValues must be one of: RequestsAndLimits, RequestsOnly" }}
+{{- end }}

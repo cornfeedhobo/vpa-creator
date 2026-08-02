@@ -14,30 +14,30 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
-type DeploymentReconciler struct {
+type DaemonSetReconciler struct {
 	client.Client
 	Scheme    *runtime.Scheme
 	VPAConfig VPAConfig
 }
 
-func (r *DeploymentReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
+func (r *DaemonSetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	l := log.FromContext(ctx)
 
-	var deploy appsv1.Deployment
-	err := r.Get(ctx, req.NamespacedName, &deploy)
+	var daemonSet appsv1.DaemonSet
+	err := r.Get(ctx, req.NamespacedName, &daemonSet)
 	if err != nil {
 		if errors.IsNotFound(err) {
-			// Deployment was deleted — VPA will be automatically garbage collected by Kubernetes
+			// DaemonSet was deleted - VPA will be automatically garbage collected by Kubernetes.
 			return ctrl.Result{}, nil
 		}
 		return ctrl.Result{}, err
 	}
 
-	vpaName := fmt.Sprintf("%s-vpa", deploy.Name)
+	vpaName := fmt.Sprintf("%s-vpa", daemonSet.Name)
 
 	// Check if VPA already exists
 	var existingVPA vpav1.VerticalPodAutoscaler
-	err = r.Get(ctx, client.ObjectKey{Name: vpaName, Namespace: deploy.Namespace}, &existingVPA)
+	err = r.Get(ctx, client.ObjectKey{Name: vpaName, Namespace: daemonSet.Namespace}, &existingVPA)
 	if err == nil {
 		// VPA exists
 		return ctrl.Result{}, nil
@@ -45,10 +45,10 @@ func (r *DeploymentReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 		return ctrl.Result{}, err
 	}
 
-	vpa := NewVPA(vpaName, deploy.Namespace, "Deployment", deploy.Name, r.VPAConfig)
+	vpa := NewVPA(vpaName, daemonSet.Namespace, "DaemonSet", daemonSet.Name, r.VPAConfig)
 
-	// Set the Deployment as the owner of the VPA for automatic garbage collection
-	if err := controllerutil.SetControllerReference(&deploy, vpa, r.Scheme); err != nil {
+	// Set the DaemonSet as the owner of the VPA for automatic garbage collection.
+	if err := controllerutil.SetControllerReference(&daemonSet, vpa, r.Scheme); err != nil {
 		l.Error(err, "Failed to set controller reference")
 		return ctrl.Result{}, err
 	}
@@ -62,9 +62,9 @@ func (r *DeploymentReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 	return ctrl.Result{}, nil
 }
 
-func (r *DeploymentReconciler) SetupWithManager(mgr ctrl.Manager) error {
+func (r *DaemonSetReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&appsv1.Deployment{}).
+		For(&appsv1.DaemonSet{}).
 		Owns(&vpav1.VerticalPodAutoscaler{}).
 		Complete(r)
 }

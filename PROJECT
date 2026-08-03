@@ -3,7 +3,7 @@
 # and allow the plugins properly work.
 # More info: https://book.kubebuilder.io/reference/project-config.html
 cliVersion: 4.6.0
-domain: example.com
+domain: github.com
 layout:
 - go.kubebuilder.io/v4
 projectName: vpa-creator

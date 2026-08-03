@@ -3,7 +3,21 @@ entries:
   vpa-creator:
   - apiVersion: v2
     appVersion: 0.3.0
-    created: "2026-08-02T23:51:00.524993116Z"
+    created: "2026-08-03T00:26:23.11266779Z"
+    description: A controller that creates Vertical Pod Autoscalers for Deployments,
+      StatefulSets, and DaemonSets.
+    digest: e94d41de6adf257cb917f86235020f0ac505b639647b88678054fd895d72ea64
+    home: https://github.com/cloudoutloud/vpa-creator
+    name: vpa-creator
+    sources:
+    - https://github.com/cloudoutloud/vpa-creator
+    type: application
+    urls:
+    - https://cornfeedhobo.github.io/vpa-creator/vpa-creator-0.3.1.tgz
+    version: 0.3.1
+  - apiVersion: v2
+    appVersion: 0.3.0
+    created: "2026-08-03T00:26:23.1122173Z"
     description: A controller that creates Vertical Pod Autoscalers for Deployments,
       StatefulSets, and DaemonSets.
     digest: 968e895d3410d9a4229f0fc09aa5097107e69a22330b7ce10f665d48161fd5f2
@@ -17,7 +31,7 @@ entries:
     version: 0.3.0
   - apiVersion: v2
     appVersion: 0.2.0
-    created: "2026-08-02T23:51:00.524606876Z"
+    created: "2026-08-03T00:26:23.111699043Z"
     description: A controller that creates Vertical Pod Autoscalers for Deployments,
       StatefulSets, and DaemonSets.
     digest: e5abc67a9b2c1d251dd1f6e71733ad369590896bc1b5972bfb19c9f1edc796a2
@@ -31,7 +45,7 @@ entries:
     version: 0.2.1
   - apiVersion: v2
     appVersion: 0.1.0
-    created: "2026-08-02T23:51:00.524248248Z"
+    created: "2026-08-03T00:26:23.11118252Z"
     description: A controller that creates Vertical Pod Autoscalers for Deployments,
       StatefulSets, and DaemonSets.
     digest: cf371105f741aa45ff643deee1374f31547f955f010712c304a06e9641b8a4ee
@@ -45,7 +59,7 @@ entries:
     version: 0.2.0
   - apiVersion: v2
     appVersion: 0.1.0
-    created: "2026-08-02T23:51:00.523833525Z"
+    created: "2026-08-03T00:26:23.11050699Z"
     description: A controller that creates Vertical Pod Autoscalers for Deployments
       and Jobs.
     digest: b012c58d0d6c0b3a1bf94bfc104c91ca519173f6771bd93d39d579db5847474d
@@ -57,4 +71,4 @@ entries:
     urls:
     - https://cornfeedhobo.github.io/vpa-creator/vpa-creator-0.1.0.tgz
     version: 0.1.0
-generated: "2026-08-02T23:51:00.523309097Z"
+generated: "2026-08-03T00:26:23.109263155Z"

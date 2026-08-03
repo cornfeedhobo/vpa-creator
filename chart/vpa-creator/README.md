@@ -22,8 +22,10 @@ image.
 
 The chart defaults all created VPAs to update mode `Off`. Set the
 `vpa-creator.cornfeedhobo/update-mode` annotation on a Deployment, StatefulSet,
-or DaemonSet to `Initial`, `Recreate`, `InPlaceOrRecreate`, or `InPlace` to
-opt that resource into an applying update mode. Set
+or DaemonSet object metadata, or on its pod template metadata, to `Initial`,
+`Recreate`, `InPlaceOrRecreate`, or `InPlace` to opt that resource into an
+applying update mode. Object metadata takes precedence when both locations set
+the annotation. Set
 `vpa.controlledValues=RequestsOnly` to have applying VPAs control requests
 without controlling limits.
 

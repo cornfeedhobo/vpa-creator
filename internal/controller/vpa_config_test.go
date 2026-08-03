@@ -131,6 +131,44 @@ func TestConfigForObjectUsesUpdateModeAnnotation(t *testing.T) {
 	}
 }
 
+func TestConfigForObjectOrPodTemplateUsesPodTemplateAnnotation(t *testing.T) {
+	deploy := &appsv1.Deployment{}
+	podTemplateAnnotations := map[string]string{
+		UpdateModeAnnotation: string(vpav1.UpdateModeInPlaceOrRecreate),
+	}
+
+	config, err := ConfigForObjectOrPodTemplate(deploy, podTemplateAnnotations, VPAConfig{})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if config.UpdateMode != vpav1.UpdateModeInPlaceOrRecreate {
+		t.Fatalf("expected update mode %q, got %q", vpav1.UpdateModeInPlaceOrRecreate, config.UpdateMode)
+	}
+}
+
+func TestConfigForObjectOrPodTemplatePrefersObjectAnnotation(t *testing.T) {
+	deploy := &appsv1.Deployment{
+		ObjectMeta: metav1.ObjectMeta{
+			Annotations: map[string]string{
+				UpdateModeAnnotation: string(vpav1.UpdateModeInitial),
+			},
+		},
+	}
+	podTemplateAnnotations := map[string]string{
+		UpdateModeAnnotation: string(vpav1.UpdateModeInPlaceOrRecreate),
+	}
+
+	config, err := ConfigForObjectOrPodTemplate(deploy, podTemplateAnnotations, VPAConfig{})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if config.UpdateMode != vpav1.UpdateModeInitial {
+		t.Fatalf("expected update mode %q, got %q", vpav1.UpdateModeInitial, config.UpdateMode)
+	}
+}
+
 func TestConfigForObjectRejectsInvalidUpdateModeAnnotation(t *testing.T) {
 	deploy := &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{

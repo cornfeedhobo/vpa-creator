@@ -12,7 +12,9 @@ VPA's are deployed as update mode off, to be used to gain insights on right sizi
 
 VPA update mode can be enabled per resource with the
 `vpa-creator.cornfeedhobo/update-mode` annotation. Supported values are `Off`,
-`Initial`, `Recreate`, `InPlaceOrRecreate`, and `InPlace`. Resources without
+`Initial`, `Recreate`, `InPlaceOrRecreate`, and `InPlace`. Put the annotation
+on the workload object metadata or on the workload pod template metadata. When
+both are set, the workload object annotation takes precedence. Resources without
 the annotation remain `Off`.
 
 VPA creation can also be disabled per workload type with
@@ -70,6 +72,9 @@ Opt a workload into an applying update mode with an annotation:
 kubectl annotate deployment my-app \
   vpa-creator.cornfeedhobo/update-mode=InPlaceOrRecreate
 ```
+
+Charts that expose pod-template annotations can set the same annotation under
+`spec.template.metadata.annotations`.
 
 The chart defaults to installing the controller resources into the
 `vpa-creator-system` namespace. Enable optional ServiceMonitor or metrics

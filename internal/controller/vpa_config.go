@@ -25,7 +25,19 @@ type VPAConfig struct {
 }
 
 func ConfigForObject(obj client.Object, config VPAConfig) (VPAConfig, error) {
-	updateMode, ok := obj.GetAnnotations()[UpdateModeAnnotation]
+	return ConfigForAnnotations(obj.GetAnnotations(), config)
+}
+
+func ConfigForObjectOrPodTemplate(obj client.Object, podTemplateAnnotations map[string]string, config VPAConfig) (VPAConfig, error) {
+	if _, ok := obj.GetAnnotations()[UpdateModeAnnotation]; ok {
+		return ConfigForObject(obj, config)
+	}
+
+	return ConfigForAnnotations(podTemplateAnnotations, config)
+}
+
+func ConfigForAnnotations(annotations map[string]string, config VPAConfig) (VPAConfig, error) {
+	updateMode, ok := annotations[UpdateModeAnnotation]
 	if !ok {
 		config.UpdateMode = vpav1.UpdateModeOff
 		return config, nil

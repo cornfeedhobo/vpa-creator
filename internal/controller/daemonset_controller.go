@@ -32,7 +32,7 @@ func (r *DaemonSetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		return ctrl.Result{}, err
 	}
 
-	vpaConfig, err := ConfigForObject(&daemonSet, r.VPAConfig)
+	vpaConfig, err := ConfigForObjectOrPodTemplate(&daemonSet, daemonSet.Spec.Template.GetAnnotations(), r.VPAConfig)
 	if err != nil {
 		l.Error(err, "Invalid VPA configuration")
 		return ctrl.Result{}, err

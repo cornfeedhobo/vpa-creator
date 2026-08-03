@@ -32,7 +32,11 @@ func (r *StatefulSetReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 		return ctrl.Result{}, err
 	}
 
-	vpaConfig, err := ConfigForObject(&statefulSet, r.VPAConfig)
+	vpaConfig, err := ConfigForObjectOrPodTemplate(
+		&statefulSet,
+		statefulSet.Spec.Template.GetAnnotations(),
+		r.VPAConfig,
+	)
 	if err != nil {
 		l.Error(err, "Invalid VPA configuration")
 		return ctrl.Result{}, err

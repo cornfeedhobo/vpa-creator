@@ -2,8 +2,22 @@ apiVersion: v1
 entries:
   vpa-creator:
   - apiVersion: v2
+    appVersion: 0.6.2
+    created: "2026-08-03T19:21:27.943730224Z"
+    description: A controller that creates Vertical Pod Autoscalers for Deployments,
+      StatefulSets, and DaemonSets.
+    digest: 303f5a4d6c6b3d30e1ea9f14a1f3000e8580ea7da2b78943de0348a3d2a30bd1
+    home: https://github.com/cloudoutloud/vpa-creator
+    name: vpa-creator
+    sources:
+    - https://github.com/cloudoutloud/vpa-creator
+    type: application
+    urls:
+    - https://cornfeedhobo.github.io/vpa-creator/vpa-creator-0.5.3.tgz
+    version: 0.5.3
+  - apiVersion: v2
     appVersion: 0.6.1
-    created: "2026-08-03T03:29:19.93773986Z"
+    created: "2026-08-03T19:21:27.94329851Z"
     description: A controller that creates Vertical Pod Autoscalers for Deployments,
       StatefulSets, and DaemonSets.
     digest: 21ade58ea5e3a92fb1133142d12785caffd0f8a39d505c603d128feb6d32ceae
@@ -17,7 +31,7 @@ entries:
     version: 0.5.2
   - apiVersion: v2
     appVersion: 0.6.0
-    created: "2026-08-03T03:29:19.937109169Z"
+    created: "2026-08-03T19:21:27.942839194Z"
     description: A controller that creates Vertical Pod Autoscalers for Deployments,
       StatefulSets, and DaemonSets.
     digest: 59422ebc1b3e9741d5be1880f2fb7297706b633e63928e8d302e0a02f91fa2b7
@@ -31,7 +45,7 @@ entries:
     version: 0.5.1
   - apiVersion: v2
     appVersion: 0.5.0
-    created: "2026-08-03T03:29:19.936609735Z"
+    created: "2026-08-03T19:21:27.942411387Z"
     description: A controller that creates Vertical Pod Autoscalers for Deployments,
       StatefulSets, and DaemonSets.
     digest: 3eeadffcc55d5569f4adaa906d54d6b69328ecdbe054d2876b2c9313ec715a8b
@@ -45,7 +59,7 @@ entries:
     version: 0.5.0
   - apiVersion: v2
     appVersion: 0.4.0
-    created: "2026-08-03T03:29:19.936145357Z"
+    created: "2026-08-03T19:21:27.941916505Z"
     description: A controller that creates Vertical Pod Autoscalers for Deployments,
       StatefulSets, and DaemonSets.
     digest: 5d3a6edcf4fdd06d80d05c5936fadc62c1881903209cd1f8733f7324f7ab1e12
@@ -59,7 +73,7 @@ entries:
     version: 0.4.0
   - apiVersion: v2
     appVersion: 0.3.0
-    created: "2026-08-03T03:29:19.935662064Z"
+    created: "2026-08-03T19:21:27.941470093Z"
     description: A controller that creates Vertical Pod Autoscalers for Deployments,
       StatefulSets, and DaemonSets.
     digest: 66dfff053c60f048db4e5e3e0fdf8d9e638ec0384cd62da82cd23e4acb7c1e9b
@@ -73,7 +87,7 @@ entries:
     version: 0.3.2
   - apiVersion: v2
     appVersion: 0.3.0
-    created: "2026-08-03T03:29:19.935211463Z"
+    created: "2026-08-03T19:21:27.941004927Z"
     description: A controller that creates Vertical Pod Autoscalers for Deployments,
       StatefulSets, and DaemonSets.
     digest: e94d41de6adf257cb917f86235020f0ac505b639647b88678054fd895d72ea64
@@ -87,7 +101,7 @@ entries:
     version: 0.3.1
   - apiVersion: v2
     appVersion: 0.3.0
-    created: "2026-08-03T03:29:19.934681201Z"
+    created: "2026-08-03T19:21:27.94055054Z"
     description: A controller that creates Vertical Pod Autoscalers for Deployments,
       StatefulSets, and DaemonSets.
     digest: 968e895d3410d9a4229f0fc09aa5097107e69a22330b7ce10f665d48161fd5f2
@@ -101,7 +115,7 @@ entries:
     version: 0.3.0
   - apiVersion: v2
     appVersion: 0.2.0
-    created: "2026-08-03T03:29:19.93419903Z"
+    created: "2026-08-03T19:21:27.940006827Z"
     description: A controller that creates Vertical Pod Autoscalers for Deployments,
       StatefulSets, and DaemonSets.
     digest: e5abc67a9b2c1d251dd1f6e71733ad369590896bc1b5972bfb19c9f1edc796a2
@@ -115,7 +129,7 @@ entries:
     version: 0.2.1
   - apiVersion: v2
     appVersion: 0.1.0
-    created: "2026-08-03T03:29:19.933680079Z"
+    created: "2026-08-03T19:21:27.939518898Z"
     description: A controller that creates Vertical Pod Autoscalers for Deployments,
       StatefulSets, and DaemonSets.
     digest: cf371105f741aa45ff643deee1374f31547f955f010712c304a06e9641b8a4ee
@@ -129,7 +143,7 @@ entries:
     version: 0.2.0
   - apiVersion: v2
     appVersion: 0.1.0
-    created: "2026-08-03T03:29:19.933158273Z"
+    created: "2026-08-03T19:21:27.939014338Z"
     description: A controller that creates Vertical Pod Autoscalers for Deployments
       and Jobs.
     digest: b012c58d0d6c0b3a1bf94bfc104c91ca519173f6771bd93d39d579db5847474d
@@ -141,4 +155,4 @@ entries:
     urls:
     - https://cornfeedhobo.github.io/vpa-creator/vpa-creator-0.1.0.tgz
     version: 0.1.0
-generated: "2026-08-03T03:29:19.932502514Z"
+generated: "2026-08-03T19:21:27.937974741Z"

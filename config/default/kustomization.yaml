@@ -25,7 +25,7 @@ resources:
 #- ../certmanager
 # [PROMETHEUS] To enable prometheus monitor, uncomment all sections with 'PROMETHEUS'.
 #- ../prometheus
-# [METRICS] Expose the controller manager metrics service.
+# [METRICS] Expose the controller metrics service.
 - metrics_service.yaml
 # [NETWORK POLICY] Protect the /metrics endpoint and Webhook Server with NetworkPolicy.
 # Only Pod(s) running a namespace labeled with 'metrics: enabled' will be able to gather the metrics.
@@ -60,7 +60,7 @@ patches:
 # - source: # Uncomment the following block to enable certificates for metrics
 #     kind: Service
 #     version: v1
-#     name: controller-manager-metrics-service
+#     name: controller-metrics-service
 #     fieldPath: metadata.name
 #   targets:
 #     - select:
@@ -79,7 +79,7 @@ patches:
 #         kind: ServiceMonitor
 #         group: monitoring.coreos.com
 #         version: v1
-#         name: controller-manager-metrics-monitor
+#         name: controller-metrics-monitor
 #       fieldPaths:
 #         - spec.endpoints.0.tlsConfig.serverName
 #       options:
@@ -90,7 +90,7 @@ patches:
 # - source:
 #     kind: Service
 #     version: v1
-#     name: controller-manager-metrics-service
+#     name: controller-metrics-service
 #     fieldPath: metadata.namespace
 #   targets:
 #     - select:
@@ -109,7 +109,7 @@ patches:
 #         kind: ServiceMonitor
 #         group: monitoring.coreos.com
 #         version: v1
-#         name: controller-manager-metrics-monitor
+#         name: controller-metrics-monitor
 #       fieldPaths:
 #         - spec.endpoints.0.tlsConfig.serverName
 #       options:

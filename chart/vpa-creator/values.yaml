@@ -75,7 +75,7 @@ networkPolicy:
       metrics: enabled
 
 podAnnotations:
-  kubectl.kubernetes.io/default-container: manager
+  kubectl.kubernetes.io/default-container: controller
 
 podLabels: {}
 

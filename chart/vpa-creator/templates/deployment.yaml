@@ -1,7 +1,7 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: {{ include "vpa-creator.managerName" . }}
+  name: {{ include "vpa-creator.controllerName" . }}
   namespace: {{ include "vpa-creator.namespace" . }}
   labels:
     {{- include "vpa-creator.labels" . | nindent 4 }}
@@ -28,11 +28,11 @@ spec:
       securityContext:
         {{- toYaml .Values.podSecurityContext | nindent 8 }}
       containers:
-        - name: manager
+        - name: controller
           image: "{{ required "image.repository is required" .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           command:
-            - /manager
+            - /controller
           args:
             {{- if .Values.metrics.enabled }}
             - --metrics-bind-address={{ .Values.metrics.bindAddress }}

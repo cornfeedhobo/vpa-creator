@@ -50,7 +50,7 @@ Selector labels.
 {{- define "vpa-creator.selectorLabels" -}}
 app.kubernetes.io/name: {{ include "vpa-creator.name" . }}
 app.kubernetes.io/instance: {{ .Release.Name }}
-control-plane: controller-manager
+control-plane: controller
 {{- end -}}
 
 {{/*
@@ -58,22 +58,22 @@ Service account name.
 */}}
 {{- define "vpa-creator.serviceAccountName" -}}
 {{- if .Values.serviceAccount.create -}}
-{{- default (printf "%s-controller-manager" (include "vpa-creator.fullname" .)) .Values.serviceAccount.name -}}
+{{- default (printf "%s-controller" (include "vpa-creator.fullname" .)) .Values.serviceAccount.name -}}
 {{- else -}}
 {{- default "default" .Values.serviceAccount.name -}}
 {{- end -}}
 {{- end -}}
 
-{{- define "vpa-creator.managerName" -}}
-{{- printf "%s-controller-manager" (include "vpa-creator.fullname" .) | trunc 63 | trimSuffix "-" -}}
+{{- define "vpa-creator.controllerName" -}}
+{{- printf "%s-controller" (include "vpa-creator.fullname" .) | trunc 63 | trimSuffix "-" -}}
 {{- end -}}
 
 {{- define "vpa-creator.metricsServiceName" -}}
-{{- printf "%s-controller-manager-metrics-service" (include "vpa-creator.fullname" .) | trunc 63 | trimSuffix "-" -}}
+{{- printf "%s-controller-metrics-service" (include "vpa-creator.fullname" .) | trunc 63 | trimSuffix "-" -}}
 {{- end -}}
 
-{{- define "vpa-creator.managerRoleName" -}}
-{{- printf "%s-manager-role" (include "vpa-creator.fullname" .) | trunc 63 | trimSuffix "-" -}}
+{{- define "vpa-creator.controllerRoleName" -}}
+{{- printf "%s-controller-role" (include "vpa-creator.fullname" .) | trunc 63 | trimSuffix "-" -}}
 {{- end -}}
 
 {{- define "vpa-creator.leaderElectionRoleName" -}}

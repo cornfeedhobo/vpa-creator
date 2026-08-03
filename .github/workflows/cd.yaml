@@ -17,26 +17,55 @@ on:
         type: boolean
 
 permissions:
+  actions: read
   contents: write
   packages: write
 
 jobs:
   preflight:
     name: Release Preflight
-    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
     outputs:
+      app_release_exists: ${{ steps.artifacts.outputs.app_release_exists }}
       app_version: ${{ steps.chart.outputs.app_version }}
       chart_name: ${{ steps.chart.outputs.chart_name }}
       chart_package: ${{ steps.chart.outputs.chart_package }}
       chart_version: ${{ steps.chart.outputs.chart_version }}
       image: ${{ steps.chart.outputs.image }}
+      image_exists: ${{ steps.artifacts.outputs.image_exists }}
     steps:
       - name: Clone the code
         uses: actions/checkout@v6
         with:
           fetch-depth: 0
           ref: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || github.sha }}
+
+      - name: Wait for triggering CI run
+        if: ${{ github.event_name == 'workflow_run' }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          ci_run_id="${{ github.event.workflow_run.id }}"
+
+          for attempt in {1..60}; do
+            status="$(gh run view "$ci_run_id" --json status --jq .status)"
+            conclusion="$(gh run view "$ci_run_id" --json conclusion --jq '.conclusion // ""')"
+
+            if [[ "$status" == "completed" ]]; then
+              if [[ "$conclusion" == "success" ]]; then
+                exit 0
+              fi
+
+              echo "::error::Triggering CI run completed with conclusion: $conclusion"
+              exit 1
+            fi
+
+            echo "Triggering CI run is $status; waiting for completion..."
+            sleep 30
+          done
+
+          echo "::error::Timed out waiting for triggering CI run $ci_run_id to complete."
+          exit 1
 
       - name: Read chart metadata
         id: chart
@@ -108,32 +137,64 @@ jobs:
 
           git fetch origin gh-pages:refs/remotes/origin/gh-pages
 
-      - name: Refuse existing release artifacts
-        if: ${{ github.event_name != 'workflow_dispatch' || !inputs.repair_existing }}
+      - name: Inspect existing release artifacts
+        id: artifacts
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           app_version="${{ steps.chart.outputs.app_version }}"
-          chart_package="${{ steps.chart.outputs.chart_package }}"
           image="${{ steps.chart.outputs.image }}"
 
+          git fetch --tags origin
+
           if git ls-remote --exit-code --tags origin "$app_version" >/dev/null 2>&1; then
-            echo "::error::Release tag already exists: $app_version"
-            echo "Bump chart/vpa-creator/Chart.yaml appVersion before publishing a new immutable release."
-            exit 1
+            app_tag_exists=true
+          else
+            app_tag_exists=false
           fi
 
           if gh release view "$app_version" >/dev/null 2>&1; then
-            echo "::error::Release already exists: $app_version"
-            echo "Bump chart/vpa-creator/Chart.yaml appVersion before publishing a new immutable release."
-            exit 1
+            app_release_exists=true
+          else
+            app_release_exists=false
           fi
 
           if docker buildx imagetools inspect "$image" >/dev/null 2>&1; then
-            echo "::error::Container image tag already exists: $image"
-            echo "Bump chart/vpa-creator/Chart.yaml appVersion before publishing a new immutable image."
+            image_exists=true
+          else
+            image_exists=false
+          fi
+
+          echo "app_release_exists=$app_release_exists" >> "$GITHUB_OUTPUT"
+          echo "image_exists=$image_exists" >> "$GITHUB_OUTPUT"
+
+          if [[ "$app_tag_exists" == "true" ]]; then
+            changed_app_files="$(
+              git diff --name-only "$app_version"..HEAD -- \
+                .dockerignore \
+                Dockerfile \
+                cmd \
+                go.mod \
+                go.sum \
+                internal
+            )"
+
+            if [[ -n "$changed_app_files" ]]; then
+              echo "::error::App source changed since release tag $app_version, but chart appVersion still points at that release."
+              echo "Bump chart/vpa-creator/Chart.yaml appVersion before publishing new app artifacts."
+              echo "$changed_app_files"
+              exit 1
+            fi
+          elif [[ "$app_release_exists" == "true" || "$image_exists" == "true" ]]; then
+            echo "::error::App artifacts already exist for $app_version, but the matching Git tag was not found."
+            echo "Cannot verify whether app source changed; repair the release tag or bump chart/vpa-creator/Chart.yaml appVersion."
             exit 1
           fi
+
+      - name: Refuse existing chart package
+        if: ${{ github.event_name != 'workflow_dispatch' || !inputs.repair_existing }}
+        run: |
+          chart_package="${{ steps.chart.outputs.chart_package }}"
 
           if git ls-tree -r --name-only origin/gh-pages -- "$chart_package" | grep -qx "$chart_package"; then
             echo "::error::Helm chart version already published: $chart_package"
@@ -151,34 +212,21 @@ jobs:
         with:
           ref: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || github.sha }}
 
-      - name: Check existing release during repair
-        if: ${{ github.event_name == 'workflow_dispatch' && inputs.repair_existing }}
-        id: repair
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          if gh release view "${{ needs.preflight.outputs.app_version }}" >/dev/null 2>&1; then
-            echo "Release already exists; skipping binary publish."
-            echo "skip=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "skip=false" >> "$GITHUB_OUTPUT"
-          fi
-
       - name: Setup Go
-        if: ${{ steps.repair.outputs.skip != 'true' }}
+        if: ${{ needs.preflight.outputs.app_release_exists != 'true' }}
         uses: actions/setup-go@v6
         with:
           go-version-file: go.mod
 
       - name: Build controller binary
-        if: ${{ steps.repair.outputs.skip != 'true' }}
+        if: ${{ needs.preflight.outputs.app_release_exists != 'true' }}
         run: |
           mkdir -p dist/artifacts
           CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o dist/artifacts/vpa-creator-linux-amd64 ./cmd/main.go
           sha256sum dist/artifacts/vpa-creator-linux-amd64 > dist/artifacts/vpa-creator-linux-amd64.sha256
 
       - name: Release controller binary
-        if: ${{ steps.repair.outputs.skip != 'true' }}
+        if: ${{ needs.preflight.outputs.app_release_exists != 'true' }}
         uses: softprops/action-gh-release@v3
         with:
           fail_on_unmatched_files: true
@@ -208,19 +256,8 @@ jobs:
           username: ${{ github.repository_owner }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Check existing image during repair
-        if: ${{ github.event_name == 'workflow_dispatch' && inputs.repair_existing }}
-        id: repair
-        run: |
-          if docker buildx imagetools inspect "${{ needs.preflight.outputs.image }}" >/dev/null 2>&1; then
-            echo "Image already exists; skipping image publish."
-            echo "skip=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "skip=false" >> "$GITHUB_OUTPUT"
-          fi
-
       - name: Docker metadata mapping
-        if: ${{ steps.repair.outputs.skip != 'true' }}
+        if: ${{ needs.preflight.outputs.image_exists != 'true' }}
         id: meta
         uses: docker/metadata-action@v6
         with:
@@ -232,7 +269,7 @@ jobs:
             type=sha,prefix=sha-
 
       - name: Build and push container image
-        if: ${{ steps.repair.outputs.skip != 'true' }}
+        if: ${{ needs.preflight.outputs.image_exists != 'true' }}
         uses: docker/build-push-action@v7
         with:
           context: .

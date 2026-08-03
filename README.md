@@ -2,7 +2,7 @@
 
 A controller to automatically deploy VPA to Deployment, StatefulSet, and DaemonSet resources across a cluster.
 
-This is just a controller not an operator, there are no defined custom CRD's
+This is just a controller not an operator, there are no defined custom CRD's.
 
 ## Description
 
@@ -42,79 +42,24 @@ This in turn could reduce overall compute cost of a cluster.
 ## Getting Started
 
 ### Prerequisites
-- go version v1.26.4+
-- docker version 17.03+.
-- kubectl version v1.11.3+.
-- Access to a Kubernetes v1.11.3+ cluster.
 
-### To Deploy on the cluster
-**Build and push your image to the location specified by `IMG`:**
+- helm
+- kubectl
+- Access to a Kubernetes cluster with the Vertical Pod Autoscaler API installed.
+
+### Install
+
+Add the Helm chart repository:
 
 ```sh
-make docker-build docker-push IMG=<some-registry>/vpa-creator:tag
+helm repo add vpa-creator https://cornfeedhobo.github.io/vpa-creator
+helm repo update
 ```
 
-**NOTE:** This image ought to be published in the personal registry you specified.
-And it is required to have access to pull the image from the working environment.
-Make sure you have the proper permission to the registry if the above commands don’t work.
-
-
-**Deploy the Manager to the cluster with the image specified by `IMG`:**
+Install the controller with the default controller image:
 
 ```sh
-make deploy IMG=<some-registry>/vpa-creator:tag
-```
-
-> **NOTE**: If you encounter RBAC errors, you may need to grant yourself cluster-admin
-privileges or be logged in as admin.
-
-**Create instances of your solution**
-You can apply the samples (examples) from the config/sample:
-
-```sh
-kubectl apply -k config/samples/
-```
-
->**NOTE**: Ensure that the samples has default values to test it out.
-
-**UnDeploy the controller from the cluster:**
-
-```sh
-make undeploy
-```
-
-## Project Distribution
-
-Following the options to release and provide this solution to the users.
-
-### By providing a bundle with all YAML files
-
-1. Build the installer for the image built and published in the registry:
-
-```sh
-make build-installer IMG=<some-registry>/vpa-creator:tag
-```
-
-**NOTE:** The makefile target mentioned above generates an 'install.yaml'
-file in the dist directory. This file contains all the resources built
-with Kustomize, which are necessary to install this project without its
-dependencies.
-
-2. Using the installer
-
-Users can just run 'kubectl apply -f <URL for YAML BUNDLE>' to install
-the project, i.e.:
-
-```sh
-kubectl apply -f https://raw.githubusercontent.com/<org>/vpa-creator/<tag or branch>/dist/install.yaml
-```
-
-### By providing a Helm Chart
-
-Install the chart with the default controller image:
-
-```sh
-helm install vpa-creator ./charts/vpa-creator \
+helm upgrade --install vpa-creator vpa-creator/vpa-creator \
   --set vpa.enabled.statefulsets=false \
   --set vpa.updateMode.deployments=Recreate \
   --set vpa.controlledValues=RequestsOnly
@@ -125,24 +70,10 @@ The chart defaults to installing the controller resources into the
 NetworkPolicy resources with chart values when those APIs are available in
 your cluster.
 
-## Contributing
+### Uninstall
 
-**NOTE:** Run `make help` for more information on all potential `make` targets
+Remove the controller:
 
-More information can be found via the [Kubebuilder Documentation](https://book.kubebuilder.io/introduction.html)
-
-## License
-
-Copyright 2025.
-
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-    http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
+```sh
+helm uninstall vpa-creator
+```

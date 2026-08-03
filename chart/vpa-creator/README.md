@@ -2,15 +2,17 @@
 
 Helm chart for the `vpa-creator` controller.
 
-Upstream source:
+Source:
 
-- https://github.com/cloudoutloud/vpa-creator
+- https://github.com/cornfeedhobo/vpa-creator
 
 This chart installs the controller image published from this repository. The
 default image tag follows the chart `appVersion`.
 
 ```sh
-helm install vpa-creator ./charts/vpa-creator \
+helm repo add vpa-creator https://cornfeedhobo.github.io/vpa-creator
+helm repo update
+helm upgrade --install vpa-creator vpa-creator/vpa-creator \
   --set vpa.enabled.statefulsets=false \
   --set vpa.updateMode.deployments=Recreate \
   --set vpa.controlledValues=RequestsOnly

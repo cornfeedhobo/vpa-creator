@@ -10,12 +10,17 @@ Will watch for Deployments, StatefulSets, and DaemonSets and create a Vertical P
 
 VPA's are deployed as update mode off, to be used to gain insights on right sizing CPU/Mem requests for workloads.
 
-VPA update mode can be enabled per resource with the
-`vpa-creator.cornfeedhobo/update-mode` annotation. Supported values are `Off`,
-`Initial`, `Recreate`, `InPlaceOrRecreate`, and `InPlace`. Put the annotation
-on the workload object metadata or on the workload pod template metadata. When
-both are set, the workload object annotation takes precedence. Resources without
-the annotation remain `Off`.
+VPA behavior can be configured per resource with annotations on the workload
+object metadata or on the workload pod template metadata. When both are set,
+the workload object annotation takes precedence for that annotation key.
+
+| Annotation | Format | Generated VPA field | Notes |
+| --- | --- | --- | --- |
+| `vpa-creator.cornfeedhobo/update-mode` | `Off`, `Initial`, `Recreate`, `InPlaceOrRecreate`, or `InPlace` | `spec.updatePolicy.updateMode` | Resources without this annotation remain `Off`. |
+| `vpa-creator.cornfeedhobo/min-replicas` | Positive integer, for example `1` | `spec.updatePolicy.minReplicas` | Overrides the VPA updater's global minimum replica safety check for this VPA. |
+| `vpa-creator.cornfeedhobo/controlled-resources` | Comma-separated resource names, for example `cpu,memory` | `spec.resourcePolicy.containerPolicies[0].controlledResources` | Applies to the wildcard `*` container policy. |
+| `vpa-creator.cornfeedhobo/min-allowed` | Comma-separated resource list, for example `cpu=100m,memory=128Mi` | `spec.resourcePolicy.containerPolicies[0].minAllowed` | Applies to the wildcard `*` container policy. |
+| `vpa-creator.cornfeedhobo/max-allowed` | Comma-separated resource list, for example `cpu=2,memory=4Gi` | `spec.resourcePolicy.containerPolicies[0].maxAllowed` | Applies to the wildcard `*` container policy. |
 
 VPA creation can also be disabled per workload type with
 `--enable-deployment-vpa=false`, `--enable-statefulset-vpa=false`, or
@@ -70,10 +75,14 @@ Opt a workload into an applying update mode with an annotation:
 
 ```sh
 kubectl annotate deployment my-app \
-  vpa-creator.cornfeedhobo/update-mode=InPlaceOrRecreate
+  vpa-creator.cornfeedhobo/update-mode=InPlaceOrRecreate \
+  vpa-creator.cornfeedhobo/min-replicas=1 \
+  vpa-creator.cornfeedhobo/controlled-resources=cpu,memory \
+  vpa-creator.cornfeedhobo/min-allowed=cpu=100m,memory=128Mi \
+  vpa-creator.cornfeedhobo/max-allowed=cpu=2,memory=4Gi
 ```
 
-Charts that expose pod-template annotations can set the same annotation under
+Charts that expose pod-template annotations can set the same annotations under
 `spec.template.metadata.annotations`.
 
 The chart defaults to installing the controller resources into the

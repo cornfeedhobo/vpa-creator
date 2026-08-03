@@ -10,10 +10,10 @@ Will watch for Deployments, StatefulSets, and DaemonSets and create a Vertical P
 
 VPA's are deployed as update mode off, to be used to gain insights on right sizing CPU/Mem requests for workloads.
 
-VPA update mode can be enabled per workload type with
-`--deployment-update-mode`, `--statefulset-update-mode`, or
-`--daemonset-update-mode`. Supported values are `Off`, `Initial`, `Recreate`,
-`InPlaceOrRecreate`, and `InPlace`. By default, all three remain `Off`.
+VPA update mode can be enabled per resource with the
+`vpa-creator.cornfeedhobo/update-mode` annotation. Supported values are `Off`,
+`Initial`, `Recreate`, `InPlaceOrRecreate`, and `InPlace`. Resources without
+the annotation remain `Off`.
 
 VPA creation can also be disabled per workload type with
 `--enable-deployment-vpa=false`, `--enable-statefulset-vpa=false`, or
@@ -61,8 +61,14 @@ Install the controller with the default controller image:
 ```sh
 helm upgrade --install vpa-creator vpa-creator/vpa-creator \
   --set vpa.enabled.statefulsets=false \
-  --set vpa.updateMode.deployments=Recreate \
   --set vpa.controlledValues=RequestsOnly
+```
+
+Opt a workload into an applying update mode with an annotation:
+
+```sh
+kubectl annotate deployment my-app \
+  vpa-creator.cornfeedhobo/update-mode=InPlaceOrRecreate
 ```
 
 The chart defaults to installing the controller resources into the

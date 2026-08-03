@@ -14,17 +14,16 @@ helm repo add vpa-creator https://cornfeedhobo.github.io/vpa-creator
 helm repo update
 helm upgrade --install vpa-creator vpa-creator/vpa-creator \
   --set vpa.enabled.statefulsets=false \
-  --set vpa.updateMode.deployments=Recreate \
   --set vpa.controlledValues=RequestsOnly
 ```
 
 Set `image.repository` and `image.tag` only when installing a custom controller
 image.
 
-The chart defaults all created VPAs to update mode `Off`. Set
-`vpa.updateMode.deployments`, `vpa.updateMode.statefulsets`, or
-`vpa.updateMode.daemonsets` to `Initial`, `Recreate`, `InPlaceOrRecreate`,
-or `InPlace` per workload type. Set
+The chart defaults all created VPAs to update mode `Off`. Set the
+`vpa-creator.cornfeedhobo/update-mode` annotation on a Deployment, StatefulSet,
+or DaemonSet to `Initial`, `Recreate`, `InPlaceOrRecreate`, or `InPlace` to
+opt that resource into an applying update mode. Set
 `vpa.controlledValues=RequestsOnly` to have applying VPAs control requests
 without controlling limits.
 

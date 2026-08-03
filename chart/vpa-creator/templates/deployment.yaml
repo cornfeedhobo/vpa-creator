@@ -53,9 +53,6 @@ spec:
             - --enable-deployment-vpa={{ .Values.vpa.enabled.deployments }}
             - --enable-statefulset-vpa={{ .Values.vpa.enabled.statefulsets }}
             - --enable-daemonset-vpa={{ .Values.vpa.enabled.daemonsets }}
-            - --deployment-update-mode={{ .Values.vpa.updateMode.deployments }}
-            - --statefulset-update-mode={{ .Values.vpa.updateMode.statefulsets }}
-            - --daemonset-update-mode={{ .Values.vpa.updateMode.daemonsets }}
             - --vpa-controlled-values={{ .Values.vpa.controlledValues }}
           securityContext:
             {{- toYaml .Values.securityContext | nindent 12 }}

@@ -49,25 +49,8 @@ var (
 )
 
 const (
-	validUpdateModes = "Off, Initial, Recreate, InPlaceOrRecreate, InPlace"
+	validControlledValues = "RequestsAndLimits, RequestsOnly"
 )
-
-func parseUpdateMode(value string) (vpav1.UpdateMode, bool) {
-	switch value {
-	case string(vpav1.UpdateModeOff):
-		return vpav1.UpdateModeOff, true
-	case string(vpav1.UpdateModeInitial):
-		return vpav1.UpdateModeInitial, true
-	case string(vpav1.UpdateModeRecreate):
-		return vpav1.UpdateModeRecreate, true
-	case string(vpav1.UpdateModeInPlaceOrRecreate):
-		return vpav1.UpdateModeInPlaceOrRecreate, true
-	case string(vpav1.UpdateModeInPlace):
-		return vpav1.UpdateModeInPlace, true
-	default:
-		return "", false
-	}
-}
 
 func parseControlledValues(value string) (vpav1.ContainerControlledValues, bool) {
 	switch vpav1.ContainerControlledValues(value) {
@@ -101,7 +84,6 @@ func main() {
 	var enableHTTP2 bool
 	var tlsOpts []func(*tls.Config)
 	var enableDeploymentVPA, enableStatefulSetVPA, enableDaemonSetVPA bool
-	var deploymentUpdateMode, statefulSetUpdateMode, daemonSetUpdateMode string
 	var vpaControlledValues string
 	flag.StringVar(&metricsAddr, "metrics-bind-address", "0", "The address the metrics endpoint binds to. "+
 		"Use :8443 for HTTPS or :8080 for HTTP, or leave as 0 to disable the metrics service.")
@@ -126,15 +108,9 @@ func main() {
 		"If set, create VPAs for StatefulSets.")
 	flag.BoolVar(&enableDaemonSetVPA, "enable-daemonset-vpa", true,
 		"If set, create VPAs for DaemonSets.")
-	flag.StringVar(&deploymentUpdateMode, "deployment-update-mode", string(vpav1.UpdateModeOff),
-		"VPA update mode for Deployments. Valid values: "+validUpdateModes+".")
-	flag.StringVar(&statefulSetUpdateMode, "statefulset-update-mode", string(vpav1.UpdateModeOff),
-		"VPA update mode for StatefulSets. Valid values: "+validUpdateModes+".")
-	flag.StringVar(&daemonSetUpdateMode, "daemonset-update-mode", string(vpav1.UpdateModeOff),
-		"VPA update mode for DaemonSets. Valid values: "+validUpdateModes+".")
 	flag.StringVar(&vpaControlledValues, "vpa-controlled-values", string(vpav1.ContainerControlledValuesRequestsAndLimits),
 		"Values controlled by VPA when update mode applies resources. "+
-			"Valid values: RequestsAndLimits, RequestsOnly.")
+			"Valid values: "+validControlledValues+".")
 	opts := zap.Options{
 		Development: true,
 	}
@@ -143,32 +119,11 @@ func main() {
 
 	ctrl.SetLogger(zap.New(zap.UseFlagOptions(&opts)))
 
-	deploymentMode, ok := parseUpdateMode(deploymentUpdateMode)
-	if !ok {
-		setupLog.Error(nil, "invalid deployment update mode",
-			"value", deploymentUpdateMode,
-			"validValues", validUpdateModes)
-		os.Exit(1)
-	}
-	statefulSetMode, ok := parseUpdateMode(statefulSetUpdateMode)
-	if !ok {
-		setupLog.Error(nil, "invalid statefulset update mode",
-			"value", statefulSetUpdateMode,
-			"validValues", validUpdateModes)
-		os.Exit(1)
-	}
-	daemonSetMode, ok := parseUpdateMode(daemonSetUpdateMode)
-	if !ok {
-		setupLog.Error(nil, "invalid daemonset update mode",
-			"value", daemonSetUpdateMode,
-			"validValues", validUpdateModes)
-		os.Exit(1)
-	}
 	controlledValues, ok := parseControlledValues(vpaControlledValues)
 	if !ok {
 		setupLog.Error(nil, "invalid VPA controlled values",
 			"value", vpaControlledValues,
-			"validValues", "RequestsAndLimits, RequestsOnly")
+			"validValues", validControlledValues)
 		os.Exit(1)
 	}
 
@@ -290,7 +245,6 @@ func main() {
 			Client: mgr.GetClient(),
 			Scheme: mgr.GetScheme(),
 			VPAConfig: controller.VPAConfig{
-				UpdateMode:       deploymentMode,
 				ControlledValues: controlledValues,
 			},
 		}).SetupWithManager(mgr); err != nil {
@@ -304,7 +258,6 @@ func main() {
 			Client: mgr.GetClient(),
 			Scheme: mgr.GetScheme(),
 			VPAConfig: controller.VPAConfig{
-				UpdateMode:       statefulSetMode,
 				ControlledValues: controlledValues,
 			},
 		}).SetupWithManager(mgr); err != nil {
@@ -318,7 +271,6 @@ func main() {
 			Client: mgr.GetClient(),
 			Scheme: mgr.GetScheme(),
 			VPAConfig: controller.VPAConfig{
-				UpdateMode:       daemonSetMode,
 				ControlledValues: controlledValues,
 			},
 		}).SetupWithManager(mgr); err != nil {

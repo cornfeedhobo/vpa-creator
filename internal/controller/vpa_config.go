@@ -2,6 +2,7 @@ package controller
 
 import (
 	"context"
+	"fmt"
 
 	v1 "k8s.io/api/autoscaling/v1"
 	apiequality "k8s.io/apimachinery/pkg/api/equality"
@@ -13,9 +14,52 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
+const (
+	UpdateModeAnnotation = "vpa-creator.cornfeedhobo/update-mode"
+	ValidUpdateModes     = "Off, Initial, Recreate, InPlaceOrRecreate, InPlace"
+)
+
 type VPAConfig struct {
 	UpdateMode       vpav1.UpdateMode
 	ControlledValues vpav1.ContainerControlledValues
+}
+
+func ConfigForObject(obj client.Object, config VPAConfig) (VPAConfig, error) {
+	updateMode, ok := obj.GetAnnotations()[UpdateModeAnnotation]
+	if !ok {
+		config.UpdateMode = vpav1.UpdateModeOff
+		return config, nil
+	}
+
+	parsed, ok := ParseUpdateMode(updateMode)
+	if !ok {
+		return VPAConfig{}, fmt.Errorf(
+			"invalid %s annotation value %q, must be one of: %s",
+			UpdateModeAnnotation,
+			updateMode,
+			ValidUpdateModes,
+		)
+	}
+
+	config.UpdateMode = parsed
+	return config, nil
+}
+
+func ParseUpdateMode(value string) (vpav1.UpdateMode, bool) {
+	switch value {
+	case string(vpav1.UpdateModeOff):
+		return vpav1.UpdateModeOff, true
+	case string(vpav1.UpdateModeInitial):
+		return vpav1.UpdateModeInitial, true
+	case string(vpav1.UpdateModeRecreate):
+		return vpav1.UpdateModeRecreate, true
+	case string(vpav1.UpdateModeInPlaceOrRecreate):
+		return vpav1.UpdateModeInPlaceOrRecreate, true
+	case string(vpav1.UpdateModeInPlace):
+		return vpav1.UpdateModeInPlace, true
+	default:
+		return "", false
+	}
 }
 
 func NewVPA(name, namespace, targetKind, targetName string, config VPAConfig) *vpav1.VerticalPodAutoscaler {

@@ -32,8 +32,14 @@ func (r *DeploymentReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 		return ctrl.Result{}, err
 	}
 
+	vpaConfig, err := ConfigForObject(&deploy, r.VPAConfig)
+	if err != nil {
+		l.Error(err, "Invalid VPA configuration")
+		return ctrl.Result{}, err
+	}
+
 	vpaName := fmt.Sprintf("%s-vpa", deploy.Name)
-	vpa := NewVPA(vpaName, deploy.Namespace, "Deployment", deploy.Name, r.VPAConfig)
+	vpa := NewVPA(vpaName, deploy.Namespace, "Deployment", deploy.Name, vpaConfig)
 
 	created, updated, err := EnsureVPA(ctx, r.Client, r.Scheme, &deploy, vpa)
 	if err != nil {

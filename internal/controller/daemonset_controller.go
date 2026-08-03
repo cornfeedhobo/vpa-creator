@@ -32,8 +32,14 @@ func (r *DaemonSetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		return ctrl.Result{}, err
 	}
 
+	vpaConfig, err := ConfigForObject(&daemonSet, r.VPAConfig)
+	if err != nil {
+		l.Error(err, "Invalid VPA configuration")
+		return ctrl.Result{}, err
+	}
+
 	vpaName := fmt.Sprintf("%s-vpa", daemonSet.Name)
-	vpa := NewVPA(vpaName, daemonSet.Namespace, "DaemonSet", daemonSet.Name, r.VPAConfig)
+	vpa := NewVPA(vpaName, daemonSet.Namespace, "DaemonSet", daemonSet.Name, vpaConfig)
 
 	created, updated, err := EnsureVPA(ctx, r.Client, r.Scheme, &daemonSet, vpa)
 	if err != nil {

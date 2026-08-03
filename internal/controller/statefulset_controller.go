@@ -32,8 +32,14 @@ func (r *StatefulSetReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 		return ctrl.Result{}, err
 	}
 
+	vpaConfig, err := ConfigForObject(&statefulSet, r.VPAConfig)
+	if err != nil {
+		l.Error(err, "Invalid VPA configuration")
+		return ctrl.Result{}, err
+	}
+
 	vpaName := fmt.Sprintf("%s-vpa", statefulSet.Name)
-	vpa := NewVPA(vpaName, statefulSet.Namespace, "StatefulSet", statefulSet.Name, r.VPAConfig)
+	vpa := NewVPA(vpaName, statefulSet.Namespace, "StatefulSet", statefulSet.Name, vpaConfig)
 
 	created, updated, err := EnsureVPA(ctx, r.Client, r.Scheme, &statefulSet, vpa)
 	if err != nil {
